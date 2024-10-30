@@ -1,4 +1,3 @@
-import useAuthStore from "@/stores/authStore";
 import { useGlobalVariablesStore } from "@/stores/globalVariablesStore/globalVariables";
 import getUnavailableFields from "@/stores/globalVariablesStore/utils/get-unavailable-fields";
 import { useQueryFunctionType } from "@/types/api";
@@ -21,10 +20,7 @@ export const useGetGlobalVariables: useQueryFunctionType<
     (state) => state.setUnavailableFields,
   );
 
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
   const getGlobalVariablesFn = async (): Promise<GlobalVariable[]> => {
-    if (!isAuthenticated) return [];
     const res = await api.get(`${getURL("VARIABLES")}/`);
     setGlobalVariablesEntries(res.data.map((entry) => entry.name));
     setUnavailableFields(getUnavailableFields(res.data));

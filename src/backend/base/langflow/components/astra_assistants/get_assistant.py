@@ -26,7 +26,7 @@ class AssistantsGetAssistantName(ComponentWithCache):
         Output(display_name="Assistant Name", name="assistant_name", method="process_inputs"),
     ]
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.client = get_patched_openai_client(self._shared_component_cache)
 

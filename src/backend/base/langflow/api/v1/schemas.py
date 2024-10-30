@@ -93,7 +93,7 @@ class ChatMessage(BaseModel):
 
     is_bot: bool = False
     message: str | None | dict = None
-    chat_key: str | None = Field(None, serialization_alias="chatKey")
+    chatKey: str | None = None
     type: str = "human"
 
 
@@ -159,7 +159,7 @@ class FlowListReadWithFolderName(BaseModel):
 
 
 class InitResponse(BaseModel):
-    flow_id: str = Field(serialization_alias="flowId")
+    flowId: str
 
 
 class BuiltResponse(BaseModel):
@@ -169,7 +169,7 @@ class BuiltResponse(BaseModel):
 class UploadFileResponse(BaseModel):
     """Upload file response schema."""
 
-    flow_id: str = Field(serialization_alias="flowId")
+    flowId: str
     file_path: Path
 
 
@@ -355,14 +355,3 @@ class ConfigResponse(BaseModel):
     auto_saving_interval: int
     health_check_max_retries: int
     max_file_size_upload: int
-
-
-class SidebarCategory(BaseModel):
-    display_name: str
-    name: str
-    icon: str
-    beta: bool = False
-
-
-class SidebarCategoriesResponse(BaseModel):
-    categories: list[SidebarCategory]

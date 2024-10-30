@@ -27,7 +27,7 @@ def _get_input_type(_input: InputTypes):
     return _input.field_type
 
 
-def build_description(component: Component, output: Output) -> str:
+def build_description(component: Component, output: Output):
     if not output.required_inputs:
         logger.warning(f"Output {output.name} does not have required inputs defined")
 
@@ -47,8 +47,6 @@ def build_description(component: Component, output: Output) -> str:
 
 def _build_output_function(component: Component, output_method: Callable):
     def output_function(*args, **kwargs):
-        # set the component with the arguments
-        # set functionality was updatedto handle list of components and other values separately
         component.set(*args, **kwargs)
         return output_method()
 

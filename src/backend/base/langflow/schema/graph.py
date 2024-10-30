@@ -37,10 +37,10 @@ class Tweaks(RootModel):
     def __getitem__(self, key):
         return self.root[key]
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key, value):
         self.root[key] = value
 
-    def __delitem__(self, key) -> None:
+    def __delitem__(self, key):
         del self.root[key]
 
     def items(self):

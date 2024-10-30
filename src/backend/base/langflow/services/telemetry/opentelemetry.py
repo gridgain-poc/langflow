@@ -55,7 +55,7 @@ class ObservableGaugeWrapper:
 
         # return [Observation(self._value)]
 
-    def set_value(self, value: float, labels: Mapping[str, str]) -> None:
+    def set_value(self, value: float, labels: Mapping[str, str]):
         self._values[tuple(sorted(labels.items()))] = value
 
 
@@ -76,7 +76,7 @@ class Metric:
         self.mandatory_labels = [label for label, required in labels.items() if required]
         self.allowed_labels = list(labels.keys())
 
-    def validate_labels(self, labels: Mapping[str, str]) -> None:
+    def validate_labels(self, labels: Mapping[str, str]):
         """Validate if the labels provided are valid."""
         if labels is None or len(labels) == 0:
             msg = "Labels must be provided for the metric"
@@ -87,7 +87,7 @@ class Metric:
             msg = f"Missing required labels: {missing_labels}"
             raise ValueError(msg)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"Metric(name='{self.name}', description='{self.description}', type={self.type}, unit='{self.unit}')"
 
 
@@ -111,16 +111,14 @@ class OpenTelemetry(metaclass=ThreadSafeSingletonMetaUsingWeakref):
     _metrics: dict[str, Counter | ObservableGaugeWrapper | Histogram | UpDownCounter] = {}
     _meter_provider: MeterProvider | None = None
 
-    def _add_metric(
-        self, name: str, description: str, unit: str, metric_type: MetricType, labels: dict[str, bool]
-    ) -> None:
+    def _add_metric(self, name: str, description: str, unit: str, metric_type: MetricType, labels: dict[str, bool]):
         metric = Metric(name=name, description=description, metric_type=metric_type, unit=unit, labels=labels)
         self._metrics_registry[name] = metric
         if labels is None or len(labels) == 0:
             msg = "Labels must be provided for the metric upon registration"
             raise ValueError(msg)
 
-    def _register_metric(self) -> None:
+    def _register_metric(self):
         """Define any custom metrics here.
 
         A thread safe singleton class to manage metrics.
@@ -198,14 +196,14 @@ class OpenTelemetry(metaclass=ThreadSafeSingletonMetaUsingWeakref):
         msg = f"Unknown metric type: {metric.type}"
         raise ValueError(msg)
 
-    def validate_labels(self, metric_name: str, labels: Mapping[str, str]) -> None:
+    def validate_labels(self, metric_name: str, labels: Mapping[str, str]):
         reg = self._metrics_registry.get(metric_name)
         if reg is None:
             msg = f"Metric '{metric_name}' is not registered"
             raise ValueError(msg)
         reg.validate_labels(labels)
 
-    def increment_counter(self, metric_name: str, labels: Mapping[str, str], value: float = 1.0) -> None:
+    def increment_counter(self, metric_name: str, labels: Mapping[str, str], value: float = 1.0):
         self.validate_labels(metric_name, labels)
         counter = self._metrics.get(metric_name)
         if isinstance(counter, Counter):
@@ -214,7 +212,7 @@ class OpenTelemetry(metaclass=ThreadSafeSingletonMetaUsingWeakref):
             msg = f"Metric '{metric_name}' is not a counter"
             raise TypeError(msg)
 
-    def up_down_counter(self, metric_name: str, value: float, labels: Mapping[str, str]) -> None:
+    def up_down_counter(self, metric_name: str, value: float, labels: Mapping[str, str]):
         self.validate_labels(metric_name, labels)
         up_down_counter = self._metrics.get(metric_name)
         if isinstance(up_down_counter, UpDownCounter):
@@ -223,7 +221,7 @@ class OpenTelemetry(metaclass=ThreadSafeSingletonMetaUsingWeakref):
             msg = f"Metric '{metric_name}' is not an up down counter"
             raise TypeError(msg)
 
-    def update_gauge(self, metric_name: str, value: float, labels: Mapping[str, str]) -> None:
+    def update_gauge(self, metric_name: str, value: float, labels: Mapping[str, str]):
         self.validate_labels(metric_name, labels)
         gauge = self._metrics.get(metric_name)
         if isinstance(gauge, ObservableGaugeWrapper):
@@ -232,7 +230,7 @@ class OpenTelemetry(metaclass=ThreadSafeSingletonMetaUsingWeakref):
             msg = f"Metric '{metric_name}' is not a gauge"
             raise TypeError(msg)
 
-    def observe_histogram(self, metric_name: str, value: float, labels: Mapping[str, str]) -> None:
+    def observe_histogram(self, metric_name: str, value: float, labels: Mapping[str, str]):
         self.validate_labels(metric_name, labels)
         histogram = self._metrics.get(metric_name)
         if isinstance(histogram, Histogram):

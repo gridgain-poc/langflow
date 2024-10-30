@@ -3,7 +3,7 @@ from langflow.services.task.service import TaskService
 
 
 class TaskServiceFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(TaskService)
 
     def create(self):

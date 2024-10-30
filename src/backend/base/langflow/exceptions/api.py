@@ -6,7 +6,7 @@ from langflow.services.database.models.flow.model import Flow
 from langflow.services.database.models.flow.utils import get_outdated_components
 
 
-class InvalidChatInputError(Exception):
+class InvalidChatInputException(Exception):
     pass
 
 

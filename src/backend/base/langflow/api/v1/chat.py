@@ -8,7 +8,7 @@ import typing
 import uuid
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from starlette.background import BackgroundTask
@@ -16,8 +16,6 @@ from starlette.responses import ContentStream
 from starlette.types import Receive
 
 from langflow.api.utils import (
-    CurrentActiveUser,
-    DbSession,
     build_and_cache_graph_from_data,
     build_graph_from_data,
     build_graph_from_db,
@@ -36,13 +34,15 @@ from langflow.api.v1.schemas import (
     VerticesOrderResponse,
 )
 from langflow.events.event_manager import EventManager, create_default_event_manager
-from langflow.exceptions.component import ComponentBuildError
+from langflow.exceptions.component import ComponentBuildException
 from langflow.graph.graph.base import Graph
 from langflow.graph.utils import log_vertex_build
 from langflow.schema.schema import OutputValue
+from langflow.services.auth.utils import get_current_active_user
 from langflow.services.chat.service import ChatService
 from langflow.services.deps import get_chat_service, get_session, get_telemetry_service
 from langflow.services.telemetry.schema import ComponentPayload, PlaygroundPayload
+from langflow.services.telemetry.service import TelemetryService
 
 if TYPE_CHECKING:
     from langflow.graph.vertex.types import InterfaceVertex
@@ -66,16 +66,17 @@ async def try_running_celery_task(vertex, user_id):
     return vertex
 
 
-@router.post("/build/{flow_id}/vertices")
+@router.post("/build/{flow_id}/vertices", response_model=VerticesOrderResponse)
 async def retrieve_vertices_order(
-    *,
     flow_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     data: Annotated[FlowDataRequest | None, Body(embed=True)] | None = None,
     stop_component_id: str | None = None,
     start_component_id: str | None = None,
-    session: DbSession,
-) -> VerticesOrderResponse:
+    chat_service: ChatService = Depends(get_chat_service),
+    session=Depends(get_session),
+    telemetry_service: TelemetryService = Depends(get_telemetry_service),
+):
     """Retrieve the vertices order for a given flow.
 
     Args:
@@ -84,7 +85,9 @@ async def retrieve_vertices_order(
         data (Optional[FlowDataRequest], optional): The flow data. Defaults to None.
         stop_component_id (str, optional): The ID of the stop component. Defaults to None.
         start_component_id (str, optional): The ID of the start component. Defaults to None.
+        chat_service (ChatService, optional): The chat service dependency. Defaults to Depends(get_chat_service).
         session (Session, optional): The session dependency. Defaults to Depends(get_session).
+        telemetry_service (TelemetryService, optional): The telemetry service.
 
     Returns:
         VerticesOrderResponse: The response containing the ordered vertex IDs and the run ID.
@@ -92,8 +95,6 @@ async def retrieve_vertices_order(
     Raises:
         HTTPException: If there is an error checking the build status.
     """
-    chat_service = get_chat_service()
-    telemetry_service = get_telemetry_service()
     start_time = time.perf_counter()
     components_count = None
     try:
@@ -116,9 +117,9 @@ async def retrieve_vertices_order(
         background_tasks.add_task(
             telemetry_service.log_package_playground,
             PlaygroundPayload(
-                playground_seconds=int(time.perf_counter() - start_time),
-                playground_component_count=components_count,
-                playground_success=True,
+                playgroundSeconds=int(time.perf_counter() - start_time),
+                playgroundComponentCount=components_count,
+                playgroundSuccess=True,
             ),
         )
         return VerticesOrderResponse(ids=graph.first_layer, run_id=graph.run_id, vertices_to_run=vertices_to_run)
@@ -126,10 +127,10 @@ async def retrieve_vertices_order(
         background_tasks.add_task(
             telemetry_service.log_package_playground,
             PlaygroundPayload(
-                playground_seconds=int(time.perf_counter() - start_time),
-                playground_component_count=components_count,
-                playground_success=False,
-                playground_error_message=str(exc),
+                playgroundSeconds=int(time.perf_counter() - start_time),
+                playgroundComponentCount=components_count,
+                playgroundSuccess=False,
+                playgroundErrorMessage=str(exc),
             ),
         )
         if "stream or streaming set to True" in str(exc):
@@ -149,11 +150,11 @@ async def build_flow(
     stop_component_id: str | None = None,
     start_component_id: str | None = None,
     log_builds: bool | None = True,
-    current_user: CurrentActiveUser,
-    session: DbSession,
+    chat_service: ChatService = Depends(get_chat_service),
+    current_user=Depends(get_current_active_user),
+    telemetry_service: TelemetryService = Depends(get_telemetry_service),
+    session=Depends(get_session),
 ):
-    chat_service = get_chat_service()
-    telemetry_service = get_telemetry_service()
     if not inputs:
         inputs = InputValueRequest(session=str(flow_id))
 
@@ -187,19 +188,19 @@ async def build_flow(
             background_tasks.add_task(
                 telemetry_service.log_package_playground,
                 PlaygroundPayload(
-                    playground_seconds=int(time.perf_counter() - start_time),
-                    playground_component_count=components_count,
-                    playground_success=True,
+                    playgroundSeconds=int(time.perf_counter() - start_time),
+                    playgroundComponentCount=components_count,
+                    playgroundSuccess=True,
                 ),
             )
         except Exception as exc:
             background_tasks.add_task(
                 telemetry_service.log_package_playground,
                 PlaygroundPayload(
-                    playground_seconds=int(time.perf_counter() - start_time),
-                    playground_component_count=components_count,
-                    playground_success=False,
-                    playground_error_message=str(exc),
+                    playgroundSeconds=int(time.perf_counter() - start_time),
+                    playgroundComponentCount=components_count,
+                    playgroundSuccess=False,
+                    playgroundErrorMessage=str(exc),
                 ),
             )
             if "stream or streaming set to True" in str(exc):
@@ -219,10 +220,10 @@ async def build_flow(
         try:
             vertex = graph.get_vertex(vertex_id)
             try:
-                lock = chat_service.async_cache_locks[flow_id_str]
+                lock = chat_service._async_cache_locks[flow_id_str]
                 vertex_build_result = await graph.build_vertex(
                     vertex_id=vertex_id,
-                    user_id=str(current_user.id),
+                    user_id=current_user.id,
                     inputs_dict=inputs.model_dump() if inputs else {},
                     files=files,
                     get_cache=chat_service.get_cache,
@@ -238,7 +239,7 @@ async def build_flow(
 
                 result_data_response = ResultDataResponse.model_validate(result_dict, from_attributes=True)
             except Exception as exc:  # noqa: BLE001
-                if isinstance(exc, ComponentBuildError):
+                if isinstance(exc, ComponentBuildException):
                     params = exc.message
                     tb = exc.formatted_traceback
                 else:
@@ -300,20 +301,20 @@ async def build_flow(
             background_tasks.add_task(
                 telemetry_service.log_package_component,
                 ComponentPayload(
-                    component_name=vertex_id.split("-")[0],
-                    component_seconds=int(time.perf_counter() - start_time),
-                    component_success=valid,
-                    component_error_message=error_message,
+                    componentName=vertex_id.split("-")[0],
+                    componentSeconds=int(time.perf_counter() - start_time),
+                    componentSuccess=valid,
+                    componentErrorMessage=error_message,
                 ),
             )
         except Exception as exc:
             background_tasks.add_task(
                 telemetry_service.log_package_component,
                 ComponentPayload(
-                    component_name=vertex_id.split("-")[0],
-                    component_seconds=int(time.perf_counter() - start_time),
-                    component_success=False,
-                    component_error_message=str(exc),
+                    componentName=vertex_id.split("-")[0],
+                    componentSeconds=int(time.perf_counter() - start_time),
+                    componentSuccess=False,
+                    componentErrorMessage=str(exc),
                 ),
             )
             logger.exception("Error building Component")
@@ -421,7 +422,7 @@ async def build_flow(
     event_manager = create_default_event_manager(queue=asyncio_queue)
     main_task = asyncio.create_task(event_generator(event_manager, asyncio_queue_client_consumed))
 
-    def on_disconnect() -> None:
+    def on_disconnect():
         logger.debug("Client disconnected, closing tasks")
         main_task.cancel()
 
@@ -458,14 +459,15 @@ class DisconnectHandlerStreamingResponse(StreamingResponse):
 
 @router.post("/build/{flow_id}/vertices/{vertex_id}")
 async def build_vertex(
-    *,
     flow_id: uuid.UUID,
     vertex_id: str,
     background_tasks: BackgroundTasks,
     inputs: Annotated[InputValueRequest | None, Body(embed=True)] = None,
     files: list[str] | None = None,
-    current_user: CurrentActiveUser,
-) -> VertexBuildResponse:
+    chat_service: ChatService = Depends(get_chat_service),
+    current_user=Depends(get_current_active_user),
+    telemetry_service: TelemetryService = Depends(get_telemetry_service),
+):
     """Build a vertex instead of the entire graph.
 
     Args:
@@ -474,7 +476,9 @@ async def build_vertex(
         background_tasks (BackgroundTasks): The background tasks dependency.
         inputs (Optional[InputValueRequest], optional): The input values for the vertex. Defaults to None.
         files (List[str], optional): The files to use. Defaults to None.
+        chat_service (ChatService, optional): The chat service dependency. Defaults to Depends(get_chat_service).
         current_user (Any, optional): The current user dependency. Defaults to Depends(get_current_active_user).
+        telemetry_service (TelemetryService, optional): The telemetry service.
 
     Returns:
         VertexBuildResponse: The response containing the built vertex information.
@@ -483,8 +487,6 @@ async def build_vertex(
         HTTPException: If there is an error building the vertex.
 
     """
-    chat_service = get_chat_service()
-    telemetry_service = get_telemetry_service()
     flow_id_str = str(flow_id)
 
     next_runnable_vertices = []
@@ -505,10 +507,10 @@ async def build_vertex(
         vertex = graph.get_vertex(vertex_id)
 
         try:
-            lock = chat_service.async_cache_locks[flow_id_str]
+            lock = chat_service._async_cache_locks[flow_id_str]
             vertex_build_result = await graph.build_vertex(
                 vertex_id=vertex_id,
-                user_id=str(current_user.id),
+                user_id=current_user.id,
                 inputs_dict=inputs.model_dump() if inputs else {},
                 files=files,
                 get_cache=chat_service.get_cache,
@@ -522,7 +524,7 @@ async def build_vertex(
             top_level_vertices = graph.get_top_level_vertices(next_runnable_vertices)
             result_data_response = ResultDataResponse.model_validate(result_dict, from_attributes=True)
         except Exception as exc:  # noqa: BLE001
-            if isinstance(exc, ComponentBuildError):
+            if isinstance(exc, ComponentBuildException):
                 params = exc.message
                 tb = exc.formatted_traceback
             else:
@@ -588,20 +590,20 @@ async def build_vertex(
         background_tasks.add_task(
             telemetry_service.log_package_component,
             ComponentPayload(
-                component_name=vertex_id.split("-")[0],
-                component_seconds=int(time.perf_counter() - start_time),
-                component_success=valid,
-                component_error_message=error_message,
+                componentName=vertex_id.split("-")[0],
+                componentSeconds=int(time.perf_counter() - start_time),
+                componentSuccess=valid,
+                componentErrorMessage=error_message,
             ),
         )
     except Exception as exc:
         background_tasks.add_task(
             telemetry_service.log_package_component,
             ComponentPayload(
-                component_name=vertex_id.split("-")[0],
-                component_seconds=int(time.perf_counter() - start_time),
-                component_success=False,
-                component_error_message=str(exc),
+                componentName=vertex_id.split("-")[0],
+                componentSeconds=int(time.perf_counter() - start_time),
+                componentSuccess=False,
+                componentErrorMessage=str(exc),
             ),
         )
         logger.exception("Error building Component")
@@ -643,7 +645,7 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
             yield str(StreamData(event="error", data={"error": msg}))
             return
 
-        if isinstance(vertex.built_result, str) and vertex.built_result:
+        if isinstance(vertex._built_result, str) and vertex._built_result:
             stream_data = StreamData(
                 event="message",
                 data={"message": f"Streaming vertex {vertex_id}"},
@@ -651,11 +653,11 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
             yield str(stream_data)
             stream_data = StreamData(
                 event="message",
-                data={"chunk": vertex.built_result},
+                data={"chunk": vertex._built_result},
             )
             yield str(stream_data)
 
-        elif not vertex.frozen or not vertex.built:
+        elif not vertex.frozen or not vertex._built:
             logger.debug(f"Streaming vertex {vertex_id}")
             stream_data = StreamData(
                 event="message",
@@ -678,7 +680,7 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
         elif vertex.result is not None:
             stream_data = StreamData(
                 event="message",
-                data={"chunk": vertex.built_result},
+                data={"chunk": vertex._built_result},
             )
             yield str(stream_data)
         else:
@@ -697,6 +699,7 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
 async def build_vertex_stream(
     flow_id: uuid.UUID,
     vertex_id: str,
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     """Build a vertex instead of the entire graph.
 
@@ -724,8 +727,6 @@ async def build_vertex_stream(
         HTTPException: If an error occurs while building the vertex.
     """
     try:
-        return StreamingResponse(
-            _stream_vertex(str(flow_id), vertex_id, get_chat_service()), media_type="text/event-stream"
-        )
+        return StreamingResponse(_stream_vertex(str(flow_id), vertex_id, chat_service), media_type="text/event-stream")
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Error building Component") from exc

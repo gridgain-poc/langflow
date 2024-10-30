@@ -29,7 +29,6 @@ class ChatOutputResponse(BaseModel):
     type: str
 
     @field_validator("files", mode="before")
-    @classmethod
     def validate_files(cls, files):
         """Validate files."""
         if not files:
@@ -108,7 +107,7 @@ class DataOutputResponse(BaseModel):
 
 
 class ContainsEnumMeta(enum.EnumMeta):
-    def __contains__(cls, item) -> bool:
+    def __contains__(cls, item):
         try:
             cls(item)
         except ValueError:

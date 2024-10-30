@@ -53,7 +53,8 @@ class RedisVectorStoreComponent(LCVectorStoreComponent):
                 documents.append(_input.to_lc_document())
             else:
                 documents.append(_input)
-        Path("docuemnts.txt").write_text(str(documents), encoding="utf-8")
+        with Path("docuemnts.txt").open("w", encoding="utf-8") as f:
+            f.write(str(documents))
 
         if not documents:
             if self.schema is None:

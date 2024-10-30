@@ -12,26 +12,26 @@ from langflow.graph import Graph
 from langflow.processing.process import run_graph_internal
 
 
-def check_env_vars(*env_vars):
+def check_env_vars(*vars):
     """Check if all specified environment variables are set.
 
     Args:
-    *env_vars (str): The environment variables to check.
+    *vars (str): The environment variables to check.
 
     Returns:
     bool: True if all environment variables are set, False otherwise.
     """
-    return all(os.getenv(var) for var in env_vars)
+    return all(os.getenv(var) for var in vars)
 
 
 def valid_nvidia_vectorize_region(api_endpoint: str) -> bool:
     """Check if the specified region is valid.
 
     Args:
-        api_endpoint: The API endpoint to check.
+    region (str): The region to check.
 
     Returns:
-        True if the region contains hosted nvidia models, False otherwise.
+    bool: True if the region is contains hosted nvidia models, False otherwise.
     """
     parsed_endpoint = parse_api_endpoint(api_endpoint)
     if not parsed_endpoint:
@@ -63,12 +63,12 @@ class JSONFlow:
     json: dict
 
     def get_components_by_type(self, component_type):
-        result = [node["id"] for node in self.json["data"]["nodes"] if node["data"]["type"] == component_type]
+        result = []
+        for node in self.json["data"]["nodes"]:
+            if node["data"]["type"] == component_type:
+                result.append(node["id"])
         if not result:
-            msg = (
-                f"Component of type {component_type} not found, "
-                f"available types: {', '.join({node['data']['type'] for node in self.json['data']['nodes']})}"
-            )
+            msg = f"Component of type {component_type} not found, available types: {', '.join({node['data']['type'] for node in self.json['data']['nodes']})}"
             raise ValueError(msg)
         return result
 
@@ -97,8 +97,7 @@ class JSONFlow:
 
 def download_flow_from_github(name: str, version: str) -> JSONFlow:
     response = requests.get(
-        f"https://raw.githubusercontent.com/langflow-ai/langflow/v{version}/src/backend/base/langflow/initial_setup/starter_projects/{name}.json",
-        timeout=10,
+        f"https://raw.githubusercontent.com/langflow-ai/langflow/v{version}/src/backend/base/langflow/initial_setup/starter_projects/{name}.json"
     )
     response.raise_for_status()
     as_json = response.json()
@@ -152,7 +151,7 @@ async def run_single_component(
                     raw_inputs[key] = value
                 if isinstance(value, Component):
                     msg = "Component inputs must be wrapped in ComponentInputHandle"
-                    raise TypeError(msg)
+                    raise ValueError(msg)
         component = clazz(**raw_inputs, _user_id=user_id)
         component_id = graph.add_component(component)
         if inputs:
@@ -169,4 +168,4 @@ async def run_single_component(
     _, _ = await run_graph_internal(
         graph, flow_id, session_id=session_id, inputs=graph_run_inputs, outputs=[component_id]
     )
-    return graph.get_vertex(component_id).built_object
+    return graph.get_vertex(component_id)._built_object

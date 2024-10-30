@@ -18,7 +18,7 @@ def run_in_thread(coro):
     result = None
     exception = None
 
-    def target() -> None:
+    def target():
         nonlocal result, exception
         try:
             result = asyncio.run(coro)

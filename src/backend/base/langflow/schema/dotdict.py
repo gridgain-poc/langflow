@@ -1,4 +1,4 @@
-class dotdict(dict):  # noqa: N801
+class dotdict(dict):
     """dotdict allows accessing dictionary elements using dot notation (e.g., dict.key instead of dict['key']).
 
     It automatically converts nested dictionaries into dotdict instances, enabling dot notation on them as well.
@@ -33,7 +33,7 @@ class dotdict(dict):  # noqa: N801
         else:
             return value
 
-    def __setattr__(self, key, value) -> None:
+    def __setattr__(self, key, value):
         """Override attribute setting to work as dictionary item assignment.
 
         Args:
@@ -44,7 +44,7 @@ class dotdict(dict):  # noqa: N801
             value = dotdict(value)
         self[key] = value
 
-    def __delattr__(self, key) -> None:
+    def __delattr__(self, key):
         """Override attribute deletion to work as dictionary item deletion.
 
         Args:

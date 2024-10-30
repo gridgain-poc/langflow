@@ -70,7 +70,7 @@ def test_instantiate_input_valid():
 
 
 def test_instantiate_input_invalid():
-    with pytest.raises(ValueError, match="Invalid input type: InvalidInput"):
+    with pytest.raises(ValueError):
         instantiate_input("InvalidInput", {"name": "invalid_input", "value": "This is a string"})
 
 
@@ -224,5 +224,5 @@ def test_instantiate_input_comprehensive():
         input_instance = instantiate_input(input_type, data)
         assert isinstance(input_instance, InputTypesMap[input_type])
 
-    with pytest.raises(ValueError, match="Invalid input type: InvalidInput"):
+    with pytest.raises(ValueError):
         instantiate_input("InvalidInput", {"name": "invalid_input", "value": "Invalid"})

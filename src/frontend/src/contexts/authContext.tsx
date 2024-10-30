@@ -5,10 +5,9 @@ import {
   LANGFLOW_REFRESH_TOKEN,
 } from "@/constants/constants";
 import { useGetUserData } from "@/controllers/API/queries/auth";
-import { useGetGlobalVariablesMutation } from "@/controllers/API/queries/variables/use-get-mutation-global-variables";
 import useAuthStore from "@/stores/authStore";
 import { createContext, useEffect, useState } from "react";
-import { Cookies } from "react-cookie";
+import Cookies from "universal-cookie";
 import { useStoreStore } from "../stores/storeStore";
 import { Users } from "../types/api";
 import { AuthContextType } from "../types/contexts/auth";
@@ -42,7 +41,6 @@ export function AuthProvider({ children }): React.ReactElement {
   const setIsAuthenticated = useAuthStore((state) => state.setIsAuthenticated);
 
   const { mutate: mutateLoggedUser } = useGetUserData();
-  const { mutate: mutateGetGlobalVariables } = useGetGlobalVariablesMutation();
 
   useEffect(() => {
     const storedAccessToken = cookies.get(LANGFLOW_ACCESS_TOKEN);
@@ -88,15 +86,10 @@ export function AuthProvider({ children }): React.ReactElement {
     setAccessToken(newAccessToken);
     setIsAuthenticated(true);
     getUser();
-    getGlobalVariables();
   }
 
   function storeApiKey(apikey: string) {
     setApiKey(apikey);
-  }
-
-  function getGlobalVariables() {
-    mutateGetGlobalVariables({});
   }
 
   return (

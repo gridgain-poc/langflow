@@ -253,7 +253,7 @@ class HCDVectorStoreComponent(LCVectorStoreComponent):
         self._add_documents_to_vector_store(vector_store)
         return vector_store
 
-    def _add_documents_to_vector_store(self, vector_store) -> None:
+    def _add_documents_to_vector_store(self, vector_store):
         documents = []
         for _input in self.ingest_data or []:
             if isinstance(_input, Data):
@@ -272,7 +272,7 @@ class HCDVectorStoreComponent(LCVectorStoreComponent):
         else:
             logger.debug("No documents to add to the Vector Store.")
 
-    def _map_search_type(self) -> str:
+    def _map_search_type(self):
         if self.search_type == "Similarity with score threshold":
             return "similarity_score_threshold"
         if self.search_type == "MMR (Max Marginal Relevance)":

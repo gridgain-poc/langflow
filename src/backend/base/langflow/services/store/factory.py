@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class StoreServiceFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(StoreService)
 
     def create(self, settings_service: SettingsService):

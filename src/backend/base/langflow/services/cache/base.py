@@ -60,7 +60,7 @@ class CacheService(Service, Generic[LockType]):
         """Clear all items from the cache."""
 
     @abc.abstractmethod
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key):
         """Check if the key is in the cache.
 
         Args:
@@ -79,7 +79,7 @@ class CacheService(Service, Generic[LockType]):
         """
 
     @abc.abstractmethod
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key, value):
         """Add an item to the cache using the square bracket notation.
 
         Args:
@@ -88,7 +88,7 @@ class CacheService(Service, Generic[LockType]):
         """
 
     @abc.abstractmethod
-    def __delitem__(self, key) -> None:
+    def __delitem__(self, key):
         """Remove an item from the cache using the square bracket notation.
 
         Args:
@@ -147,7 +147,7 @@ class AsyncBaseCacheService(Service, Generic[AsyncLockType]):
         """Clear all items from the cache."""
 
     @abc.abstractmethod
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key):
         """Check if the key is in the cache.
 
         Args:

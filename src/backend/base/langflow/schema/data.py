@@ -8,7 +8,6 @@ from langchain_core.prompts.image import ImagePromptTemplate
 from loguru import logger
 from pydantic import BaseModel, model_serializer, model_validator
 
-from langflow.schema.serialize import recursive_serialize_or_str
 from langflow.utils.constants import MESSAGE_SENDER_AI, MESSAGE_SENDER_USER
 
 if TYPE_CHECKING:
@@ -166,7 +165,7 @@ class Data(BaseModel):
             msg = f"'{type(self).__name__}' object has no attribute '{key}'"
             raise AttributeError(msg) from e
 
-    def __setattr__(self, key, value) -> None:
+    def __setattr__(self, key, value):
         """Set attribute-like values in the data dictionary.
 
         Allows attribute-like setting of values in the data dictionary.
@@ -180,7 +179,7 @@ class Data(BaseModel):
         else:
             self.data[key] = value
 
-    def __delattr__(self, key) -> None:
+    def __delattr__(self, key):
         """Allows attribute-like deletion from the data dictionary."""
         if key in {"data", "text_key"} or key.startswith("_"):
             super().__delattr__(key)
@@ -200,13 +199,12 @@ class Data(BaseModel):
         # return a JSON string representation of the Data atributes
         try:
             data = {k: v.to_json() if hasattr(v, "to_json") else v for k, v in self.data.items()}
-            data = recursive_serialize_or_str(data)
             return json.dumps(data, indent=4)
         except Exception:  # noqa: BLE001
             logger.opt(exception=True).debug("Error converting Data to JSON")
             return str(self.data)
 
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key):
         return key in self.data
 
     def __eq__(self, other):

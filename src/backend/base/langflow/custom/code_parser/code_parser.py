@@ -32,7 +32,8 @@ def find_class_ast_node(class_obj):
         return None, []
 
     # Read the source code from the file
-    source_code = Path(source_file).read_text(encoding="utf-8")
+    with Path(source_file).open(encoding="utf-8") as file:
+        source_code = file.read()
 
     # Parse the source code into an AST
     tree = ast.parse(source_code)
@@ -161,7 +162,7 @@ class CodeParser:
 
             # Handle cases where the type is not found in the constructed environment
             with contextlib.suppress(NameError):
-                return_type = eval(return_type_str, eval_env)  # noqa: S307
+                return_type = eval(return_type_str, eval_env)
 
         func = CallableCodeDetails(
             name=node.name,
@@ -318,7 +319,7 @@ class CodeParser:
             self.process_class_node(_node, class_details)
         self.data["classes"].append(class_details.model_dump())
 
-    def process_class_node(self, node, class_details) -> None:
+    def process_class_node(self, node, class_details):
         for stmt in node.body:
             if isinstance(stmt, ast.Assign):
                 if attr := self.parse_assign(stmt):

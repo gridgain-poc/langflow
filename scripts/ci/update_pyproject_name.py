@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-
 import re
 import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent.parent.parent
-ARGUMENT_NUMBER = 3
 
 
 def update_pyproject_name(pyproject_path: str, new_project_name: str) -> None:
@@ -18,7 +15,7 @@ def update_pyproject_name(pyproject_path: str, new_project_name: str) -> None:
 
     if not pattern.search(content):
         msg = f'Project name not found in "{filepath}"'
-        raise ValueError(msg)
+        raise Exception(msg)
     content = pattern.sub(new_project_name, content)
 
     filepath.write_text(content, encoding="utf-8")
@@ -42,15 +39,15 @@ def update_uv_dep(pyproject_path: str, new_project_name: str) -> None:
     # Updates the dependency name for uv
     if not pattern.search(content):
         msg = f"{replacement} uv dependency not found in {filepath}"
-        raise ValueError(msg)
+        raise Exception(msg)
     content = pattern.sub(replacement, content)
     filepath.write_text(content, encoding="utf-8")
 
 
 def main() -> None:
-    if len(sys.argv) != ARGUMENT_NUMBER:
+    if len(sys.argv) != 3:
         msg = "Must specify project name and build type, e.g. langflow-nightly base"
-        raise ValueError(msg)
+        raise Exception(msg)
     new_project_name = sys.argv[1]
     build_type = sys.argv[2]
 

@@ -11,7 +11,6 @@ import {
   ArrowBigUp,
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
   ArrowUpToLine,
   Bell,
   Binary,
@@ -46,7 +45,6 @@ import {
   Command,
   Compass,
   Copy,
-  CornerDownLeft,
   Cpu,
   CpuIcon,
   Database,
@@ -87,7 +85,6 @@ import {
   Heart,
   HelpCircle,
   Home,
-  Image,
   Info,
   Key,
   Keyboard,
@@ -117,8 +114,6 @@ import {
   OptionIcon,
   Package2,
   Palette,
-  PanelLeftClose,
-  PanelLeftOpen,
   Paperclip,
   PaperclipIcon,
   Pencil,
@@ -140,7 +135,6 @@ import {
   ScanEye,
   Scissors,
   ScreenShare,
-  Scroll,
   ScrollText,
   Search,
   Settings,
@@ -218,7 +212,6 @@ import { GroqIcon } from "../icons/Groq";
 import { HCDIcon } from "../icons/HCD";
 import { HuggingFaceIcon } from "../icons/HuggingFace";
 import { IFixIcon } from "../icons/IFixIt";
-import { LMStudioIcon } from "../icons/LMStudio";
 import { LangChainIcon } from "../icons/LangChain";
 import { MaritalkIcon } from "../icons/Maritalk";
 import { MetaIcon } from "../icons/Meta";
@@ -229,6 +222,7 @@ import { NvidiaIcon } from "../icons/Nvidia";
 import { OllamaIcon } from "../icons/Ollama";
 import { OpenAiIcon } from "../icons/OpenAi";
 import { OpenSearch } from "../icons/OpenSearch";
+import { GridGain } from "../icons/GridGain";
 import { PineconeIcon } from "../icons/Pinecone";
 import { PostgresIcon } from "../icons/Postgres";
 import { PythonIcon } from "../icons/Python";
@@ -370,7 +364,6 @@ export const nodeNames: { [char: string]: string } = {
 };
 
 export const nodeIconsLucide: iconsType = {
-  LMStudio: LMStudioIcon,
   X: X,
   Notify: Bell,
   ListFlows: Group,
@@ -644,12 +637,6 @@ export const nodeIconsLucide: iconsType = {
   PaperclipIcon,
   Settings,
   Streamlit,
-  PanelLeftClose: PanelLeftClose,
-  PanelLeftOpen: PanelLeftOpen,
-  ArrowUpRight: ArrowUpRight,
-  Scroll,
-  Image,
-  CornerDownLeft,
   MistralAI: MistralIcon,
   Upstash: UpstashSvgIcon,
   PGVector: CpuIcon,
@@ -667,4 +654,5 @@ export const nodeIconsLucide: iconsType = {
   TavilyIcon,
   DuckDuckGo: DuckDuckGoIcon,
   OpenSearch,
+  GridGain
 };

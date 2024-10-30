@@ -9,7 +9,7 @@ from .service import StorageService
 class LocalStorageService(StorageService):
     """A service class for handling local storage operations without aiofiles."""
 
-    def __init__(self, session_service, settings_service) -> None:
+    def __init__(self, session_service, settings_service):
         """Initialize the local storage service with session and settings services."""
         super().__init__(session_service, settings_service)
         self.data_dir = Path(settings_service.settings.config_dir)
@@ -19,7 +19,7 @@ class LocalStorageService(StorageService):
         """Build the full path of a file in the local storage."""
         return str(self.data_dir / flow_id / file_name)
 
-    async def save_file(self, flow_id: str, file_name: str, data: bytes) -> None:
+    async def save_file(self, flow_id: str, file_name: str, data: bytes):
         """Save a file in the local storage.
 
         :param flow_id: The identifier for the flow.
@@ -34,7 +34,8 @@ class LocalStorageService(StorageService):
         file_path = folder_path / file_name
 
         def write_file(file_path: Path, data: bytes) -> None:
-            file_path.write_bytes(data)
+            with Path(file_path).open("wb") as f:
+                f.write(data)
 
         try:
             await asyncio.get_event_loop().run_in_executor(None, write_file, file_path, data)
@@ -58,7 +59,8 @@ class LocalStorageService(StorageService):
             raise FileNotFoundError(msg)
 
         def read_file(file_path: Path) -> bytes:
-            return file_path.read_bytes()
+            with Path(file_path).open("rb") as f:
+                return f.read()
 
         content = await asyncio.get_event_loop().run_in_executor(None, read_file, file_path)
         logger.debug(f"File {file_name} retrieved successfully from flow {flow_id}.")
@@ -81,7 +83,7 @@ class LocalStorageService(StorageService):
         logger.info(f"Listed {len(files)} files in flow {flow_id}.")
         return files
 
-    async def delete_file(self, flow_id: str, file_name: str) -> None:
+    async def delete_file(self, flow_id: str, file_name: str):
         """Delete a file from the local storage.
 
         :param flow_id: The identifier for the flow.
@@ -94,6 +96,6 @@ class LocalStorageService(StorageService):
         else:
             logger.warning(f"Attempted to delete non-existent file {file_name} in flow {flow_id}.")
 
-    async def teardown(self) -> None:
+    async def teardown(self):
         """Perform any cleanup operations when the service is being torn down."""
         # No specific teardown actions required for local

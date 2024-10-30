@@ -10,7 +10,7 @@ class SettingsServiceFactory(ServiceFactory):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(SettingsService)
 
     def create(self):
