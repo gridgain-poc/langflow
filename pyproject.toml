@@ -12,9 +12,9 @@ packages = ["src/backend/langflow"]
 
 [project]
 name = "langflow"
-version = "1.0.21"
+version = "1.0.22"
 description = "A Python package with a built-in web application"
-requires-python = "==3.11.7"
+requires-python = ">=3.11.7"
 license = "MIT"
 keywords = ["nlp", "langchain", "openai", "gpt", "gui"]
 readme = "README.md"
@@ -108,7 +108,8 @@ dependencies = [
     "duckduckgo-search>=6.3.1",
     "langchain-elasticsearch>=0.2.0",
     "opensearch-py>=2.7.1",
-    "gg_langchain @ file:///C:/Users/adish/Documents/langflow/stas_repo/langflow/lib/gg_langchain-0.6.1.tar.gz"
+    "pygridgain @ file:///C:/Users/adish/Documents/Gridgain_repos/Gridgain/python-thin-client",    
+    "gg_langchain @ file:///C:/Users/adish/Documents/Gridgain_repos/gg8_langchain"
 ]
 
 [project.urls]

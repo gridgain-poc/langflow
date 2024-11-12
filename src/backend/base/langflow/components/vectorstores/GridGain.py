@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional, List, Union
 import pandas as pd
 from loguru import logger
 from langflow.base.vectorstores.model import LCVectorStoreComponent, check_cached_vector_store
@@ -6,9 +6,8 @@ from langflow.helpers.data import docs_to_data
 from langflow.io import HandleInput, IntInput, MessageTextInput, StrInput, FileInput
 from langflow.schema import Data
 from langchain.schema import Document
-
-if TYPE_CHECKING:
-    from langchain_community.vectorstores.ignite import GridGainVectorStore
+from pygridgain import Client
+from langchain_community.vectorstores.ignite import GridGainVectorStore
 
 class GridGainVectorStoreComponent(LCVectorStoreComponent):
     """GridGain Vector Store with enhanced CSV handling capabilities."""
@@ -21,11 +20,12 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
 
     inputs = [
         StrInput(name="cache_name", display_name="Cache Name", required=True),
-        StrInput(name="api_endpoint", display_name="API EndPoint", required=True),
+        StrInput(name="host", display_name="Host", required=True),
+        IntInput(name="port", display_name="Port", required=True),
         FileInput(
             name="csv_file",
             display_name="CSV File",
-            file_types=["csv"],  # Removed the dot
+            file_types=["csv"],
             required=False,
         ),
         HandleInput(
@@ -51,23 +51,19 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             df = pd.read_csv(csv_path)
             documents = []
             
-            # Combine relevant columns for content
             for _, row in df.iterrows():
-                # Extract title and text, handling potential missing columns
                 title = row.get('title', '')
                 text = row.get('text', '')
                 
-                # Create content combining title and text
                 content = f"{title}\n{text}".strip()
                 
-                # Create metadata from other columns
                 metadata = {
                     "id": str(row.get('id', '')),
                     "url": row.get('url', ''),
                     "vector_id": row.get('vector_id', '')
                 }
                 
-                if content:  # Only create document if there's content
+                if content:
                     documents.append(
                         Document(
                             page_content=content,
@@ -85,26 +81,41 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
     def build_vector_store(self) -> "GridGainVectorStore":
         """Builds the GridGain Vector Store object with CSV support."""
         try:
-            from langchain_community.vectorstores.ignite import GridGainVectorStore
-        except ImportError as e:
-            msg = "Could not import GridGain. Please install it with `pip install gridgain-vector-store`."
-            raise ImportError(msg) from e
+            # Connect to Ignite/GridGain using provided host and port
+            client = self.connect_to_ignite(self.host, self.port)
+            logger.info(f"Connected to GridGain at {self.host}:{self.port}")
 
-        gridgain = GridGainVectorStore(
-            cache_name=self.cache_name,
-            embedding=self.embedding,
-            api_endpoint=self.api_endpoint,
-        )
+            gridgain = GridGainVectorStore(
+                cache_name=self.cache_name,
+                embedding=self.embedding,
+                client=client
+            )
 
-        # Process CSV if provided
-        if hasattr(self, 'csv_file') and self.csv_file:
-            documents = self.process_csv(self.csv_file)
-            if documents:
-                logger.info(f"Adding {len(documents)} documents from CSV to GridGain")
-                gridgain.add_documents(documents)
-                self.status = f"Added {len(documents)} documents from CSV to GridGain"
+            # Process CSV if provided
+            if hasattr(self, 'csv_file') and self.csv_file:
+                documents = self.process_csv(self.csv_file)
+                if documents:
+                    logger.info(f"Adding {len(documents)} documents from CSV to GridGain")
+                    gridgain.add_documents(documents)
+                    self.status = f"Added {len(documents)} documents from CSV to GridGain"
 
-        return gridgain
+            return gridgain
+
+        except Exception as e:
+            logger.error(f"Error during GridGain Vector Store initialization: {e}")
+            self.status = f"Error: {str(e)}"
+            raise
+    
+    def connect_to_ignite(self, host: str, port: int) -> Client:
+        """Connect to Ignite/GridGain server using provided host and port."""
+        try:
+            client = Client()
+            client.connect(host, port)
+            logger.info(f"Connected to GridGain server at {host}:{port} successfully.")
+            return client
+        except Exception as e:
+            logger.exception(f"Failed to connect to GridGain: {e}")
+            raise
 
     def search_documents(self) -> list[Data]:
         """Search documents with enhanced error handling."""
