@@ -3,7 +3,7 @@ from langflow.utils.lazy_load import LazyLoadDictBase
 
 
 class Finish:
-    def __bool__(self) -> bool:
+    def __bool__(self):
         return True
 
     def __eq__(self, other):
@@ -17,12 +17,12 @@ def _import_vertex_types():
 
 
 class VertexTypesDict(LazyLoadDictBase):
-    def __init__(self) -> None:
+    def __init__(self):
         self._all_types_dict = None
         self._types = _import_vertex_types
 
     @property
-    def vertex_type_map(self):
+    def VERTEX_TYPE_MAP(self):
         return self.all_types_dict
 
     def _build_dict(self):

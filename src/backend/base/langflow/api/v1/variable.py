@@ -1,11 +1,14 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import NoResultFound
+from sqlmodel import Session
 
-from langflow.api.utils import CurrentActiveUser, DbSession
+from langflow.services.auth.utils import get_current_active_user
+from langflow.services.database.models.user.model import User
 from langflow.services.database.models.variable import VariableCreate, VariableRead, VariableUpdate
-from langflow.services.deps import get_variable_service
+from langflow.services.deps import get_session, get_variable_service
+from langflow.services.variable.base import VariableService
 from langflow.services.variable.constants import GENERIC_TYPE
 from langflow.services.variable.service import DatabaseVariableService
 
@@ -15,12 +18,12 @@ router = APIRouter(prefix="/variables", tags=["Variables"])
 @router.post("/", response_model=VariableRead, status_code=201)
 def create_variable(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     variable: VariableCreate,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
+    variable_service: DatabaseVariableService = Depends(get_variable_service),
 ):
     """Create a new variable."""
-    variable_service = get_variable_service()
     if not variable.name and not variable.value:
         raise HTTPException(status_code=400, detail="Variable name and value cannot be empty")
 
@@ -50,14 +53,11 @@ def create_variable(
 @router.get("/", response_model=list[VariableRead], status_code=200)
 def read_variables(
     *,
-    session: DbSession,
-    current_user: CurrentActiveUser,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user),
+    variable_service: DatabaseVariableService = Depends(get_variable_service),
 ):
     """Read all variables."""
-    variable_service = get_variable_service()
-    if not isinstance(variable_service, DatabaseVariableService):
-        msg = "Variable service is not an instance of DatabaseVariableService"
-        raise TypeError(msg)
     try:
         return variable_service.get_all(user_id=current_user.id, session=session)
     except Exception as e:
@@ -67,16 +67,13 @@ def read_variables(
 @router.patch("/{variable_id}", response_model=VariableRead, status_code=200)
 def update_variable(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     variable_id: UUID,
     variable: VariableUpdate,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
+    variable_service: DatabaseVariableService = Depends(get_variable_service),
 ):
     """Update a variable."""
-    variable_service = get_variable_service()
-    if not isinstance(variable_service, DatabaseVariableService):
-        msg = "Variable service is not an instance of DatabaseVariableService"
-        raise TypeError(msg)
     try:
         return variable_service.update_variable_fields(
             user_id=current_user.id,
@@ -94,12 +91,12 @@ def update_variable(
 @router.delete("/{variable_id}", status_code=204)
 def delete_variable(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     variable_id: UUID,
-    current_user: CurrentActiveUser,
-) -> None:
+    current_user: User = Depends(get_current_active_user),
+    variable_service: VariableService = Depends(get_variable_service),
+):
     """Delete a variable."""
-    variable_service = get_variable_service()
     try:
         variable_service.delete_variable_by_id(user_id=current_user.id, variable_id=variable_id, session=session)
     except Exception as e:

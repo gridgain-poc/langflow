@@ -72,7 +72,10 @@ test("should delete rows from table message", async ({ page }) => {
 
   await page.waitForTimeout(2000);
 
-  await page.getByTestId("user-profile-settings").click();
+  await page.getByTestId("user-profile-settings").last().click();
+  await page.waitForSelector(
+    '[data-testid="user-profile-settings"]:last-child',
+  );
 
   await page.waitForTimeout(500);
 

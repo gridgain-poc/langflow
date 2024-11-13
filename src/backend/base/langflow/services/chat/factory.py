@@ -3,7 +3,7 @@ from langflow.services.factory import ServiceFactory
 
 
 class ChatServiceFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(ChatService)
 
     def create(self):

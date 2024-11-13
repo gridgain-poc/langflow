@@ -1,60 +1,34 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from langchain_core.language_models import BaseLanguageModel
 from langflow.components.helpers.structured_output import StructuredOutputComponent
 from langflow.schema.data import Data
 from pydantic import BaseModel
-from typing_extensions import override
+
+
+@pytest.fixture
+def client():
+    pass
 
 
 class TestStructuredOutputComponent:
-    # Ensure that the structured output is successfully generated with the correct BaseModel instance returned by
-    # the mock function
+    # Ensure that the structured output is successfully generated with the correct BaseModel instance returned by the mock function
     def test_successful_structured_output_generation_with_patch_with_config(self):
         from unittest.mock import patch
 
-        class MockLanguageModel(BaseLanguageModel):
-            @override
-            def with_structured_output(self, *args, **kwargs):
+        class MockLanguageModel:
+            def with_structured_output(self, schema):
                 return self
 
-            @override
-            def with_config(self, *args, **kwargs):
+            def with_config(self, config):
                 return self
 
-            @override
-            def invoke(self, *args, **kwargs):
+            def invoke(self, inputs):
                 return self
 
-            @override
-            def generate_prompt(self, *args, **kwargs):
-                raise NotImplementedError
-
-            @override
-            async def agenerate_prompt(self, *args, **kwargs):
-                raise NotImplementedError
-
-            @override
-            def predict(self, *args, **kwargs):
-                raise NotImplementedError
-
-            @override
-            def predict_messages(self, *args, **kwargs):
-                raise NotImplementedError
-
-            @override
-            async def apredict(self, *args, **kwargs):
-                raise NotImplementedError
-
-            @override
-            async def apredict_messages(self, *args, **kwargs):
-                raise NotImplementedError
-
-        def mock_get_chat_result(runnable, input_value, config):  # noqa: ARG001
+        def mock_get_chat_result(runnable, input_value, config):
             class MockBaseModel(BaseModel):
-                @override
-                def model_dump(self, **kwargs):
+                def model_dump(self):
                     return {"field": "value"}
 
             return MockBaseModel()

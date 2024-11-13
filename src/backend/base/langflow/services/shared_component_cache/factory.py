@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class SharedComponentCacheServiceFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(SharedComponentCacheService)
 
     def create(self, settings_service: "SettingsService"):

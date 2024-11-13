@@ -19,7 +19,6 @@ from langflow.services.database.models.api_key.model import ApiKey
 from langflow.services.database.models.user.crud import get_user_by_id, get_user_by_username, update_user_last_login_at
 from langflow.services.database.models.user.model import User, UserRead
 from langflow.services.deps import get_session, get_settings_service
-from langflow.services.settings.service import SettingsService
 
 oauth2_login = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 
@@ -33,9 +32,9 @@ MINIMUM_KEY_LENGTH = 32
 
 # Source: https://github.com/mrtolkien/fastapi_simple_security/blob/master/fastapi_simple_security/security_api_key.py
 async def api_key_security(
-    query_param: Annotated[str, Security(api_key_query)],
-    header_param: Annotated[str, Security(api_key_header)],
-    db: Annotated[Session, Depends(get_session)],
+    query_param: str = Security(api_key_query),
+    header_param: str = Security(api_key_header),
+    db: Session = Depends(get_session),
 ) -> UserRead | None:
     settings_service = get_settings_service()
     result: ApiKey | User | None = None
@@ -75,10 +74,10 @@ async def api_key_security(
 
 
 async def get_current_user(
-    token: Annotated[str, Security(oauth2_login)],
-    query_param: Annotated[str, Security(api_key_query)],
-    header_param: Annotated[str, Security(api_key_header)],
-    db: Annotated[Session, Depends(get_session)],
+    token: str = Security(oauth2_login),
+    query_param: str = Security(api_key_query),
+    header_param: str = Security(api_key_header),
+    db: Session = Depends(get_session),
 ) -> User:
     if token:
         return await get_current_user_by_jwt(token, db)
@@ -94,7 +93,7 @@ async def get_current_user(
 
 async def get_current_user_by_jwt(
     token: Annotated[str, Depends(oauth2_login)],
-    db: Annotated[Session, Depends(get_session)],
+    db: Session = Depends(get_session),
 ) -> User:
     settings_service = get_settings_service()
 
@@ -155,8 +154,8 @@ async def get_current_user_by_jwt(
 
 async def get_current_user_for_websocket(
     websocket: WebSocket,
-    db: Annotated[Session, Depends(get_session)],
-    query_param: Annotated[str, Security(api_key_query)],
+    db: Session = Depends(get_session),
+    query_param: str = Security(api_key_query),
 ) -> User | None:
     token = websocket.query_params.get("token")
     api_key = websocket.query_params.get("x-api-key")
@@ -208,7 +207,7 @@ def create_token(data: dict, expires_delta: timedelta):
 def create_super_user(
     username: str,
     password: str,
-    db: Session,
+    db: Session = Depends(get_session),
 ) -> User:
     super_user = get_user_by_username(db, username)
 
@@ -228,7 +227,7 @@ def create_super_user(
     return super_user
 
 
-def create_user_longterm_token(db: Session) -> tuple[UUID, dict]:
+def create_user_longterm_token(db: Session = Depends(get_session)) -> tuple[UUID, dict]:
     settings_service = get_settings_service()
 
     username = settings_service.auth_settings.SUPERUSER
@@ -268,7 +267,7 @@ def get_user_id_from_token(token: str) -> UUID:
         return UUID(int=0)
 
 
-def create_user_tokens(user_id: UUID, db: Session, *, update_last_login: bool = False) -> dict:
+def create_user_tokens(user_id: UUID, db: Session = Depends(get_session), *, update_last_login: bool = False) -> dict:
     settings_service = get_settings_service()
 
     access_token_expires = timedelta(seconds=settings_service.auth_settings.ACCESS_TOKEN_EXPIRE_SECONDS)
@@ -294,7 +293,7 @@ def create_user_tokens(user_id: UUID, db: Session, *, update_last_login: bool = 
     }
 
 
-def create_refresh_token(refresh_token: str, db: Session):
+def create_refresh_token(refresh_token: str, db: Session = Depends(get_session)):
     settings_service = get_settings_service()
 
     try:
@@ -327,7 +326,7 @@ def create_refresh_token(refresh_token: str, db: Session):
         ) from e
 
 
-def authenticate_user(username: str, password: str, db: Session) -> User | None:
+def authenticate_user(username: str, password: str, db: Session = Depends(get_session)) -> User | None:
     user = get_user_by_username(db, username)
 
     if not user:
@@ -360,20 +359,20 @@ def ensure_valid_key(s: str) -> bytes:
     return key
 
 
-def get_fernet(settings_service: SettingsService):
-    secret_key: str = settings_service.auth_settings.SECRET_KEY.get_secret_value()
-    valid_key = ensure_valid_key(secret_key)
+def get_fernet(settings_service=Depends(get_settings_service)):
+    SECRET_KEY: str = settings_service.auth_settings.SECRET_KEY.get_secret_value()
+    valid_key = ensure_valid_key(SECRET_KEY)
     return Fernet(valid_key)
 
 
-def encrypt_api_key(api_key: str, settings_service: SettingsService):
+def encrypt_api_key(api_key: str, settings_service=Depends(get_settings_service)):
     fernet = get_fernet(settings_service)
     # Two-way encryption
     encrypted_key = fernet.encrypt(api_key.encode())
     return encrypted_key.decode()
 
 
-def decrypt_api_key(encrypted_api_key: str, settings_service: SettingsService):
+def decrypt_api_key(encrypted_api_key: str, settings_service=Depends(get_settings_service)):
     fernet = get_fernet(settings_service)
     decrypted_key = ""
     # Two-way decryption

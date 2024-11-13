@@ -16,7 +16,7 @@ class MultipleOutputsComponent(Component):
     ]
 
     def certain_output(self) -> int:
-        return randint(0, self.number)  # noqa: S311
+        return randint(0, self.number)
 
     def other_output(self) -> int:
         return self.certain_output()

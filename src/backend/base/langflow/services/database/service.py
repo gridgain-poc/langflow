@@ -45,7 +45,7 @@ class DatabaseService(Service):
         self.alembic_cfg_path = langflow_dir / "alembic.ini"
         self.engine = self._create_engine()
 
-    def reload_engine(self) -> None:
+    def reload_engine(self):
         self.engine = self._create_engine()
 
     def _create_engine(self) -> Engine:
@@ -82,13 +82,13 @@ class DatabaseService(Service):
             msg = "Error creating database engine"
             raise RuntimeError(msg) from exc
 
-    def on_connection(self, dbapi_connection, _connection_record) -> None:
+    def on_connection(self, dbapi_connection, _connection_record):
         from sqlite3 import Connection as sqliteConnection
 
         if isinstance(dbapi_connection, sqliteConnection):
-            pragmas: dict = self.settings_service.settings.sqlite_pragmas or {}
+            pragmas: dict | None = self.settings_service.settings.sqlite_pragmas
             pragmas_list = []
-            for key, val in pragmas.items():
+            for key, val in pragmas.items() or {}:
                 pragmas_list.append(f"PRAGMA {key} = {val}")
             logger.info(f"sqlite connection, setting pragmas: {pragmas_list}")
             if pragmas_list:
@@ -107,7 +107,7 @@ class DatabaseService(Service):
         with Session(self.engine) as session:
             yield session
 
-    def migrate_flows_if_auto_login(self) -> None:
+    def migrate_flows_if_auto_login(self):
         # if auto_login is enabled, we need to migrate the flows
         # to the default superuser if they don't have a user id
         # associated with them
@@ -161,14 +161,14 @@ class DatabaseService(Service):
 
         return True
 
-    def init_alembic(self, alembic_cfg) -> None:
+    def init_alembic(self, alembic_cfg):
         logger.info("Initializing alembic")
         command.ensure_version(alembic_cfg)
         # alembic_cfg.attributes["connection"].commit()
         command.upgrade(alembic_cfg, "head")
         logger.info("Alembic initialized")
 
-    def run_migrations(self, *, fix=False) -> None:
+    def run_migrations(self, *, fix=False):
         # First we need to check if alembic has been initialized
         # If not, we need to initialize it
         # if not self.script_location.exists(): # this is not the correct way to check if alembic has been initialized
@@ -178,7 +178,7 @@ class DatabaseService(Service):
         # which is a buffer
         # I don't want to output anything
         # subprocess.DEVNULL is an int
-        with (self.script_location / "alembic.log").open("w", encoding="utf-8") as buffer:
+        with (self.script_location / "alembic.log").open("w") as buffer:
             alembic_cfg = Config(stdout=buffer)
             # alembic_cfg.attributes["connection"] = session
             alembic_cfg.set_main_option("script_location", str(self.script_location))
@@ -227,7 +227,7 @@ class DatabaseService(Service):
             if fix:
                 self.try_downgrade_upgrade_until_success(alembic_cfg)
 
-    def try_downgrade_upgrade_until_success(self, alembic_cfg, retries=5) -> None:
+    def try_downgrade_upgrade_until_success(self, alembic_cfg, retries=5):
         # Try -1 then head, if it fails, try -2 then head, etc.
         # until we reach the number of retries
         for i in range(1, retries + 1):
@@ -273,7 +273,7 @@ class DatabaseService(Service):
                 results.append(Result(name=column, type="column", success=True))
         return results
 
-    def create_db_and_tables(self) -> None:
+    def create_db_and_tables(self):
         from sqlalchemy import inspect
 
         inspector = inspect(self.engine)
@@ -308,7 +308,7 @@ class DatabaseService(Service):
 
         logger.debug("Database and tables created successfully")
 
-    async def teardown(self) -> None:
+    async def teardown(self):
         logger.debug("Tearing down database")
         try:
             settings_service = get_settings_service()

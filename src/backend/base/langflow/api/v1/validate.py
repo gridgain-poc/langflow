@@ -9,21 +9,21 @@ from langflow.utils.validate import validate_code
 router = APIRouter(prefix="/validate", tags=["Validate"])
 
 
-@router.post("/code", status_code=200)
-def post_validate_code(code: Code) -> CodeValidationResponse:
+@router.post("/code", status_code=200, response_model=CodeValidationResponse)
+def post_validate_code(code: Code):
     try:
         errors = validate_code(code.code)
         return CodeValidationResponse(
             imports=errors.get("imports", {}),
             function=errors.get("function", {}),
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.opt(exception=True).debug("Error validating code")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        return HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/prompt", status_code=200)
-def post_validate_prompt(prompt_request: ValidatePromptRequest) -> PromptValidationResponse:
+@router.post("/prompt", status_code=200, response_model=PromptValidationResponse)
+def post_validate_prompt(prompt_request: ValidatePromptRequest):
     try:
         if not prompt_request.frontend_node:
             return PromptValidationResponse(

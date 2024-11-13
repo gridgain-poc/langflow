@@ -34,6 +34,8 @@ test("CRUD folders", async ({ page }) => {
   });
 
   await page.getByTestId("icon-ChevronLeft").first().click();
+
+  await page.getByText("My Collection").nth(2).isVisible();
   await page.getByPlaceholder("Search flows").first().isVisible();
   await page.getByText("Flows").first().isVisible();
   await page.getByText("Components").first().isVisible();
@@ -62,10 +64,9 @@ test("CRUD folders", async ({ page }) => {
     .last()
     .hover()
     .then(async () => {
-      await page.getByTestId("more-options-button").last().click();
+      await page.getByTestId("btn-delete-folder").last().click();
     });
 
-  await page.getByTestId("btn-delete-folder").click();
   await page.getByText("Delete").last().click();
   await page.waitForTimeout(1000);
   await page.getByText("Folder deleted successfully").isVisible();
@@ -161,6 +162,7 @@ test("change flow folder", async ({ page }) => {
 
   await page.getByTestId("icon-ChevronLeft").first().click();
 
+  await page.getByText("My Collection").nth(2).isVisible();
   await page.getByPlaceholder("Search flows").isVisible();
   await page.getByText("Flows").first().isVisible();
   await page.getByText("Components").first().isVisible();

@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: BASENAME || "",
     build: {
-      outDir: "build",
+      outDir: "dist",
     },
     define: {
       "process.env.BACKEND_URL": JSON.stringify(env.BACKEND_URL),

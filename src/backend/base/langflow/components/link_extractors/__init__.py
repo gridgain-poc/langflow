@@ -1,4 +1,4 @@
-from .html_link_extractor import HtmlLinkExtractorComponent
+from .HtmlLinkExtractor import HtmlLinkExtractorComponent
 
 __all__ = [
     "HtmlLinkExtractorComponent",

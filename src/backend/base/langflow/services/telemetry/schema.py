@@ -1,15 +1,15 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class RunPayload(BaseModel):
-    run_is_webhook: bool = Field(default=False, serialization_alias="runIsWebhook")
-    run_seconds: int = Field(serialization_alias="runSeconds")
-    run_success: bool = Field(serialization_alias="runSuccess")
-    run_error_message: str = Field("", serialization_alias="runErrorMessage")
+    runIsWebhook: bool = False
+    runSeconds: int
+    runSuccess: bool
+    runErrorMessage: str = ""
 
 
 class ShutdownPayload(BaseModel):
-    time_running: int = Field(serialization_alias="timeRunning")
+    timeRunning: int
 
 
 class VersionPayload(BaseModel):
@@ -18,20 +18,20 @@ class VersionPayload(BaseModel):
     platform: str
     python: str
     arch: str
-    auto_login: bool = Field(serialization_alias="autoLogin")
-    cache_type: str = Field(serialization_alias="cacheType")
-    backend_only: bool = Field(serialization_alias="backendOnly")
+    autoLogin: bool
+    cacheType: str
+    backendOnly: bool
 
 
 class PlaygroundPayload(BaseModel):
-    playground_seconds: int = Field(serialization_alias="playgroundSeconds")
-    playground_component_count: int | None = Field(None, serialization_alias="playgroundComponentCount")
-    playground_success: bool = Field(serialization_alias="playgroundSuccess")
-    playground_error_message: str = Field("", serialization_alias="playgroundErrorMessage")
+    playgroundSeconds: int
+    playgroundComponentCount: int | None = None
+    playgroundSuccess: bool
+    playgroundErrorMessage: str = ""
 
 
 class ComponentPayload(BaseModel):
-    component_name: str = Field(serialization_alias="componentName")
-    component_seconds: int = Field(serialization_alias="componentSeconds")
-    component_success: bool = Field(serialization_alias="componentSuccess")
-    component_error_message: str | None = Field(serialization_alias="componentErrorMessage")
+    componentName: str
+    componentSeconds: int
+    componentSuccess: bool
+    componentErrorMessage: str | None = None

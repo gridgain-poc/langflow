@@ -1,3 +1,5 @@
-from .astradb import AstraVectorStoreComponent
+from .AstraDB import AstraVectorStoreComponent
+from .GridGain import GridGainVectorStoreComponent
 
-__all__ = ["AstraVectorStoreComponent"]
+
+__all__ = ["AstraVectorStoreComponent","GridGainVectorStoreComponent"]

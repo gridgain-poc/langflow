@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class SocketIOFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(
             service_class=SocketIOService,
         )

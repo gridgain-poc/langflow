@@ -7,7 +7,7 @@ from langflow.services.storage.service import StorageService
 
 
 class StorageServiceFactory(ServiceFactory):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(
             StorageService,
         )

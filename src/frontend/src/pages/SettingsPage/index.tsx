@@ -76,7 +76,6 @@ export default function SettingsPage(): JSX.Element {
   );
   return (
     <PageLayout
-      backTo={"/"}
       title="Settings"
       description="Manage the general settings for Langflow."
     >

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class CeleryBackend(TaskBackend):
     name = "celery"
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.celery_app = celery_app
 
     def launch_task(self, task_func: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[str, AsyncResult]:

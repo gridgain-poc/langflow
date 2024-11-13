@@ -16,9 +16,10 @@ from fastapi_pagination import Page, Params, add_pagination
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import Session, and_, col, select
 
-from langflow.api.utils import CurrentActiveUser, DbSession, cascade_delete_flow, remove_api_keys, validate_is_component
+from langflow.api.utils import cascade_delete_flow, remove_api_keys, validate_is_component
 from langflow.api.v1.schemas import FlowListCreate
 from langflow.initial_setup.setup import STARTER_FOLDER_NAME
+from langflow.services.auth.utils import get_current_active_user
 from langflow.services.database.models.flow import Flow, FlowCreate, FlowRead, FlowUpdate
 from langflow.services.database.models.flow.model import FlowHeader
 from langflow.services.database.models.flow.utils import get_webhook_component_in_flow
@@ -27,7 +28,7 @@ from langflow.services.database.models.folder.model import Folder
 from langflow.services.database.models.transactions.crud import get_transactions_by_flow_id
 from langflow.services.database.models.user.model import User
 from langflow.services.database.models.vertex_builds.crud import get_vertex_builds_by_flow_id
-from langflow.services.deps import get_settings_service
+from langflow.services.deps import get_session, get_settings_service
 from langflow.services.settings.service import SettingsService
 
 # build router
@@ -37,9 +38,9 @@ router = APIRouter(prefix="/flows", tags=["Flows"])
 @router.post("/", response_model=FlowRead, status_code=201)
 def create_flow(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     flow: FlowCreate,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
 ):
     try:
         """Create a new flow."""
@@ -126,13 +127,14 @@ def create_flow(
 @router.get("/", response_model=list[FlowRead] | Page[FlowRead] | list[FlowHeader], status_code=200)
 def read_flows(
     *,
-    current_user: CurrentActiveUser,
-    session: DbSession,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+    settings_service: SettingsService = Depends(get_settings_service),
     remove_example_flows: bool = False,
     components_only: bool = False,
-    get_all: bool = True,
+    get_all: bool = False,
     folder_id: UUID | None = None,
-    params: Annotated[Params, Depends()],
+    params: Params = Depends(),
     header_flows: bool = False,
 ):
     """Retrieve a list of flows with pagination support.
@@ -142,33 +144,23 @@ def read_flows(
         session (Session): The database session.
         settings_service (SettingsService): The settings service.
         components_only (bool, optional): Whether to return only components. Defaults to False.
-
-        get_all (bool, optional): Whether to return all flows without pagination. Defaults to True.
-        **This field must be True because of backward compatibility with the frontend - Release: 1.0.20**
-
+        get_all (bool, optional): Whether to return all flows without pagination. Defaults to False.
         folder_id (UUID, optional): The folder ID. Defaults to None.
         params (Params): Pagination parameters.
         remove_example_flows (bool, optional): Whether to remove example flows. Defaults to False.
         header_flows (bool, optional): Whether to return only specific headers of the flows. Defaults to False.
 
     Returns:
-        list[FlowRead] | Page[FlowRead] | list[FlowHeader]
-        A list of flows or a paginated response containing the list of flows or a list of flow headers.
+        Union[list[FlowRead], Page[FlowRead]]: A list of flows or a paginated response containing the list of flows.
     """
     try:
-        auth_settings = get_settings_service().auth_settings
+        auth_settings = settings_service.auth_settings
 
         default_folder = session.exec(select(Folder).where(Folder.name == DEFAULT_FOLDER_NAME)).first()
         default_folder_id = default_folder.id if default_folder else None
 
         starter_folder = session.exec(select(Folder).where(Folder.name == STARTER_FOLDER_NAME)).first()
         starter_folder_id = starter_folder.id if starter_folder else None
-
-        if not starter_folder and not default_folder:
-            raise HTTPException(
-                status_code=404,
-                detail="Starter folder and default folder not found. Please create a folder and add flows to it.",
-            )
 
         if not folder_id:
             folder_id = default_folder_id
@@ -186,6 +178,9 @@ def read_flows(
         if components_only:
             stmt = stmt.where(Flow.is_component == True)  # noqa: E712
 
+        if not get_all:
+            stmt = stmt.where(Flow.folder_id == folder_id)
+
         if get_all:
             flows = session.exec(stmt).all()
             flows = validate_is_component(flows)
@@ -199,8 +194,6 @@ def read_flows(
                     for flow in flows
                 ]
             return flows
-
-        stmt = stmt.where(Flow.folder_id == folder_id)
         return paginate(session, stmt, params=params)
 
     except Exception as e:
@@ -228,12 +221,13 @@ def _read_flow(
 @router.get("/{flow_id}", response_model=FlowRead, status_code=200)
 def read_flow(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     flow_id: UUID,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
+    settings_service: SettingsService = Depends(get_settings_service),
 ):
     """Read a flow."""
-    if user_flow := _read_flow(session, flow_id, current_user, get_settings_service()):
+    if user_flow := _read_flow(session, flow_id, current_user, settings_service):
         return user_flow
     raise HTTPException(status_code=404, detail="Flow not found")
 
@@ -241,13 +235,13 @@ def read_flow(
 @router.patch("/{flow_id}", response_model=FlowRead, status_code=200)
 def update_flow(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     flow_id: UUID,
     flow: FlowUpdate,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
+    settings_service=Depends(get_settings_service),
 ):
     """Update a flow."""
-    settings_service = get_settings_service()
     try:
         db_flow = _read_flow(
             session=session,
@@ -301,16 +295,17 @@ def update_flow(
 @router.delete("/{flow_id}", status_code=200)
 async def delete_flow(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     flow_id: UUID,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
+    settings_service=Depends(get_settings_service),
 ):
     """Delete a flow."""
     flow = _read_flow(
         session=session,
         flow_id=flow_id,
         current_user=current_user,
-        settings_service=get_settings_service(),
+        settings_service=settings_service,
     )
     if not flow:
         raise HTTPException(status_code=404, detail="Flow not found")
@@ -322,9 +317,9 @@ async def delete_flow(
 @router.post("/batch/", response_model=list[FlowRead], status_code=201)
 def create_flows(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
     flow_list: FlowListCreate,
-    current_user: CurrentActiveUser,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Create multiple new flows."""
     db_flows = []
@@ -342,9 +337,9 @@ def create_flows(
 @router.post("/upload/", response_model=list[FlowRead], status_code=201)
 async def upload_file(
     *,
-    session: DbSession,
-    file: Annotated[UploadFile, File(...)],
-    current_user: CurrentActiveUser,
+    session: Session = Depends(get_session),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
     folder_id: UUID | None = None,
 ):
     """Upload flows from a file."""
@@ -366,8 +361,8 @@ async def upload_file(
 @router.delete("/")
 async def delete_multiple_flows(
     flow_ids: list[UUID],
-    user: CurrentActiveUser,
-    db: DbSession,
+    user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[Session, Depends(get_session)],
 ):
     """Delete multiple flows by their IDs.
 
@@ -402,8 +397,8 @@ async def delete_multiple_flows(
 @router.post("/download/", status_code=200)
 async def download_multiple_file(
     flow_ids: list[UUID],
-    user: CurrentActiveUser,
-    db: DbSession,
+    user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[Session, Depends(get_session)],
 ):
     """Download all flows as a zip file."""
     flows = db.exec(select(Flow).where(and_(Flow.user_id == user.id, Flow.id.in_(flow_ids)))).all()  # type: ignore[attr-defined]
@@ -444,7 +439,7 @@ async def download_multiple_file(
 @router.get("/basic_examples/", response_model=list[FlowRead], status_code=200)
 def read_basic_examples(
     *,
-    session: DbSession,
+    session: Session = Depends(get_session),
 ):
     """Retrieve a list of basic example flows.
 

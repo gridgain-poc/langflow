@@ -1,16 +1,13 @@
-<!-- markdownlint-disable MD030 -->
-
 # [![Langflow](./docs/static/img/hero.png)](https://www.langflow.org)
 
 <p align="center" style="font-size: 12px;">
-    Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database.
+    Langflow is a low-code app builder for RAG and multi-agent AI applications. It's Python-based and agnostic to any model, API, or database.
 </p>
 
 <p align="center" style="font-size: 12px;">
     <a href="https://docs.langflow.org" style="text-decoration: underline;">Docs</a> -
     <a href="https://astra.datastax.com/signup?type=langflow" style="text-decoration: underline;">Free Cloud Service</a> -
     <a href="https://docs.langflow.org/getting-started-installation" style="text-decoration: underline;">Self Managed</a>
-    
 </p>
 
 <div align="center">
@@ -35,8 +32,30 @@
 9. **Customize workflows** or create flows entirely just using Python.
 10. **Ecosystem integrations** as reusable components for any model, API or database.
 
-![Integrations](https://github.com/user-attachments/assets/e9c96dc4-47bf-48ab-ad58-e01e038f25e8)
+## GridGain Vector Store Component
 
+Langflow includes a custom GridGain Vector Store component that provides enhanced CSV handling capabilities. This component allows you to:
+
+1. Ingest CSV files directly into the GridGain Vector Store.
+2. Automatically process the CSV content and metadata to create LangChain Documents.
+3. Perform similarity searches on the ingested data using the GridGain Vector Store.
+
+To use the GridGain Vector Store component, follow these steps:
+
+1. Install the required dependencies:
+
+```
+pip install langflow 
+pip install lib\gg_langchain-0.6.1.tar.gz
+pip install -e .
+```
+
+2. In the Langflow Visual IDE, add the GridGain Vector Store component to your workflow.
+3. Configure the component with the necessary settings, such as the cache name, API endpoint, and CSV file (if applicable).
+4. Connect the component to other components in your workflow, such as an Embedding component and a Search Query component.
+5. Run the workflow to ingest the CSV data and perform similarity searches.
+
+The GridGain Vector Store component is designed to seamlessly integrate with the Langflow platform, allowing you to leverage the power of GridGain's vector search capabilities within your low-code AI applications.
 
 ## 📦 Quickstart
 
@@ -47,7 +66,29 @@ pip install langflow
 ```
 
 - **Cloud:** DataStax Langflow is a hosted environment with zero setup. [Sign up for a free account.](https://astra.datastax.com/signup?type=langflow)
-- **Self-managed:** Run Langflow in your environment. [Install Langflow](https://docs.langflow.org/getting-started-installation) to run a local Langflow server, and then use the [Quickstart](https://docs.langflow.org/getting-started-quickstart) guide to create and execute a flow.
+- **Self-managed:** Run Langflow in your environment. Follow these steps:
+
+1. Install Langflow:
+
+```shell
+pip install langflow
+pip install -e .
+```
+
+2. Run the Langflow backend:
+
+```shell
+uv run langflow run --env-file local.env
+```
+
+3. Set up the Langflow frontend:
+
+```shell
+cd src/frontend
+npm install
+npm run build
+```
+
 - **Hugging Face:** [Clone the space using this link](https://huggingface.co/spaces/Langflow/Langflow?duplicate=true) to create a Langflow workspace.
 
 [![Getting Started](https://github.com/user-attachments/assets/f1adfbe7-3c35-43a4-b265-661f3d4f875f)](https://www.youtube.com/watch?v=kinngWhaUKM)

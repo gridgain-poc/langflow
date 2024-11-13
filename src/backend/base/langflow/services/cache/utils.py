@@ -19,10 +19,10 @@ PREFIX = "langflow_cache"
 
 
 class CacheMiss:
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "<CACHE_MISS>"
 
-    def __bool__(self) -> bool:
+    def __bool__(self):
         return False
 
 
@@ -40,7 +40,7 @@ def create_cache_folder(func):
 
 
 @create_cache_folder
-def clear_old_cache_files(max_cache_size: int = 3) -> None:
+def clear_old_cache_files(max_cache_size: int = 3):
     cache_dir = Path(tempfile.gettempdir()) / PREFIX
     cache_files = list(cache_dir.glob("*.dill"))
 
@@ -104,7 +104,8 @@ def save_binary_file(content: str, file_name: str, accepted_types: list[str]) ->
     file_path = cache_path / file_name
 
     # Save the binary content to the file
-    file_path.write_bytes(decoded_bytes)
+    with file_path.open("wb") as file:
+        file.write(decoded_bytes)
 
     return str(file_path)
 
@@ -155,7 +156,7 @@ def save_uploaded_file(file: UploadFile, folder_name):
     return file_path
 
 
-def update_build_status(cache_service, flow_id: str, status: "BuildStatus") -> None:
+def update_build_status(cache_service, flow_id: str, status: "BuildStatus"):
     cached_flow = cache_service[flow_id]
     if cached_flow is None:
         msg = f"Flow {flow_id} not found in cache"

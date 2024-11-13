@@ -1,4 +1,5 @@
 import unicodedata
+import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from concurrent import futures
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 import chardet
 import orjson
 import yaml
-from defusedxml import ElementTree
 
 from langflow.schema import Data
 
@@ -109,14 +109,16 @@ def partition_file_to_data(file_path: str, *, silent_errors: bool) -> Data | Non
 
 def read_text_file(file_path: str) -> str:
     _file_path = Path(file_path)
-    raw_data = _file_path.read_bytes()
-    result = chardet.detect(raw_data)
-    encoding = result["encoding"]
+    with _file_path.open("rb") as f:
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        encoding = result["encoding"]
 
-    if encoding in {"Windows-1252", "Windows-1254", "MacRoman"}:
-        encoding = "utf-8"
+        if encoding in {"Windows-1252", "Windows-1254", "MacRoman"}:
+            encoding = "utf-8"
 
-    return _file_path.read_text(encoding=encoding)
+    with _file_path.open(encoding=encoding) as f:
+        return f.read()
 
 
 def read_docx_file(file_path: str) -> str:
@@ -155,8 +157,8 @@ def parse_text_file_to_data(file_path: str, *, silent_errors: bool) -> Data | No
         elif file_path.endswith((".yaml", ".yml")):
             text = yaml.safe_load(text)
         elif file_path.endswith(".xml"):
-            xml_element = ElementTree.fromstring(text)
-            text = ElementTree.tostring(xml_element, encoding="unicode")
+            xml_element = ET.fromstring(text)
+            text = ET.tostring(xml_element, encoding="unicode")
     except Exception as e:
         if not silent_errors:
             msg = f"Error loading file {file_path}: {e}"

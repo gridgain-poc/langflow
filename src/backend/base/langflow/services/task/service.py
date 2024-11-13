@@ -33,15 +33,16 @@ class TaskService(Service):
         self.settings_service = settings_service
         try:
             if self.settings_service.settings.celery_enabled:
+                USE_CELERY = True
                 status = check_celery_availability()
 
-                use_celery = status.get("availability") is not None
+                USE_CELERY = status.get("availability") is not None
             else:
-                use_celery = False
+                USE_CELERY = False
         except ImportError:
-            use_celery = False
+            USE_CELERY = False
 
-        self.use_celery = use_celery
+        self.use_celery = USE_CELERY
         self.backend = self.get_backend()
 
     @property

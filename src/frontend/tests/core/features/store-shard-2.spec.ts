@@ -79,11 +79,8 @@ test("should share component with share button", async ({ page }) => {
   await page.waitForTimeout(1000);
   await page.getByText("Success! Your API Key has been saved.").isVisible();
 
-  await page.waitForSelector('[data-testid="icon-ChevronLeft"]', {
-    timeout: 100000,
-  });
-
-  await page.getByTestId("icon-ChevronLeft").first().click();
+  await page.getByText("My Collection").click();
+  await page.waitForTimeout(1000);
 
   let modalCount = 0;
   try {

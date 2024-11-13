@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Literal
 
 import pytest
-from langflow.components.inputs import ChatInput
+from langflow.components.inputs.ChatInput import ChatInput
 
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo
@@ -180,7 +180,7 @@ class TestCreateInputSchema:
         input_instance = StrInput(name="test_field", is_list=True)
         schema = create_input_schema([input_instance])
         field_info = schema.model_fields["test_field"]
-        assert field_info.annotation == list[str]
+        assert field_info.annotation == list[str]  # type: ignore
 
     # Converting FieldTypes to corresponding Python types
     def test_field_types_conversion(self):

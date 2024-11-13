@@ -12,10 +12,8 @@ PYPI_LANGFLOW_NIGHTLY_URL = "https://pypi.org/pypi/langflow-nightly/json"
 PYPI_LANGFLOW_BASE_URL = "https://pypi.org/pypi/langflow-base/json"
 PYPI_LANGFLOW_BASE_NIGHTLY_URL = "https://pypi.org/pypi/langflow-base-nightly/json"
 
-ARGUMENT_NUMBER = 2
 
-
-def get_latest_published_version(build_type: str, *, is_nightly: bool) -> Version:
+def get_latest_published_version(build_type: str, is_nightly: bool) -> Version:
     import requests
 
     url = ""
@@ -27,12 +25,12 @@ def get_latest_published_version(build_type: str, *, is_nightly: bool) -> Versio
         msg = f"Invalid build type: {build_type}"
         raise ValueError(msg)
 
-    res = requests.get(url, timeout=10)
+    res = requests.get(url)
     try:
         version_str = res.json()["info"]["version"]
     except Exception as e:
         msg = "Got unexpected response from PyPI"
-        raise RuntimeError(msg) from e
+        raise RuntimeError(msg, e)
     return Version(version_str)
 
 
@@ -76,9 +74,9 @@ def create_tag(build_type: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != ARGUMENT_NUMBER:
+    if len(sys.argv) != 2:
         msg = "Specify base or main"
-        raise ValueError(msg)
+        raise Exception(msg)
 
     build_type = sys.argv[1]
     tag = create_tag(build_type)

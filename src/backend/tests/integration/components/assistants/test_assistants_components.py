@@ -1,5 +1,4 @@
 import pytest
-
 from tests.integration.utils import run_single_component
 
 
