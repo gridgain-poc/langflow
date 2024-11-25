@@ -236,6 +236,7 @@ import { BotMessageSquareIcon } from "../icons/BotMessageSquare";
 import { CassandraIcon } from "../icons/Cassandra";
 import { ChromaIcon } from "../icons/ChromaIcon";
 import { ClickhouseIcon } from "../icons/Clickhouse";
+import { GridGain } from "../icons/GridGain";
 import { CohereIcon } from "../icons/Cohere";
 import { ComposioIcon } from "../icons/Composio";
 import { ConfluenceIcon } from "../icons/Confluence";
@@ -592,6 +593,7 @@ export const nodeIconsLucide: iconsType = {
   Chroma: ChromaIcon,
   Couchbase: CouchbaseIcon,
   Clickhouse: ClickhouseIcon,
+  GridGain: GridGain,
   AirbyteJSONLoader: AirbyteIcon,
   AmazonBedrockEmbeddings: AWSIcon,
   Amazon: AWSIcon,
