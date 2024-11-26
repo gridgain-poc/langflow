@@ -116,8 +116,8 @@ dependencies = [
     "sqlalchemy[aiosqlite,postgresql_psycopg2binary,postgresql_psycopgbinary]>=2.0.36",
     "atlassian-python-api>=3.41.16",
     "mem0ai>=0.1.26",
-    "pygridgain @ file:///{YOUR_LOCAL_PATH}/python-thin-client",    
-    "gg_langchain @ file:///{YOUR_LOCAL_PATH}/gg8_langchain"
+    "pygridgain @ file:///C:/Users/adish/Documents/Gridgain_repos/Gridgain/python-thin-client",    
+    "gg_langchain @ file:///C:/Users/adish/Documents/Gridgain_repos/gg8_langchain"
 ]
 
 [project.urls]

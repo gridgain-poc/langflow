@@ -7,10 +7,10 @@ import pygridgain
 
 
 class GridGainChatMemory(LCChatMemoryComponent):
-    """Chat memory component that stores history in GridGain/Apache Ignite."""
-    
+    """Chat memory component that stores history in GridGain."""
+
     display_name = "GridGain Chat Memory"
-    description = "Retrieves and stores chat messages using GridGain/Apache Ignite."
+    description = "Retrieves and stores chat messages using GridGain."
     name = "GridGainChatMemory"
     icon: str = "GridGain"
 
@@ -18,14 +18,14 @@ class GridGainChatMemory(LCChatMemoryComponent):
         StrInput(
             name="host",
             display_name="Host",
-            info="GridGain/Ignite server host address.",
+            info="GridGain server host address.",
             required=True,
             value="localhost",
         ),
         StrInput(
             name="port",
             display_name="Port",
-            info="GridGain/Ignite server port number.",
+            info="GridGain server port number.",
             required=True,
             value="10800",
         ),
@@ -45,11 +45,12 @@ class GridGainChatMemory(LCChatMemoryComponent):
         StrInput(
             name="client_type",
             display_name="Client Type",
-            info="Type of client to use (pyignite or pygridgain).",
+            info="Type of client to use (pygridgain).",
             required=True,
-            value="pyignite",
+            value="pygridgain",
         ),
     ]
+
 
     def build_message_history(self) -> BaseChatMessageHistory:
         """Build and return a GridGain chat message history instance."""
