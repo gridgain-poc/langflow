@@ -81,8 +81,8 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
     def build_vector_store(self) -> "GridGainVectorStore":
         """Builds the GridGain Vector Store object with CSV support."""
         try:
-            # Connect to Ignite/GridGain using provided host and port
-            client = self.connect_to_ignite(self.host, self.port)
+            # Connect to GridGain using provided host and port
+            client = self.connect_to_gridgain(self.host, self.port)
             logger.info(f"Connected to GridGain at {self.host}:{self.port}")
 
             gridgain = GridGainVectorStore(
@@ -106,8 +106,8 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             self.status = f"Error: {str(e)}"
             raise
     
-    def connect_to_ignite(self, host: str, port: int) -> Client:
-        """Connect to Ignite/GridGain server using provided host and port."""
+    def connect_to_gridgain(self, host: str, port: int) -> Client:
+        """Connect to GridGain server using provided host and port."""
         try:
             client = Client()
             client.connect(host, port)
