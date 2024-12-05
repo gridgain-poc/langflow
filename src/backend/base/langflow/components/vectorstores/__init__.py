@@ -2,25 +2,25 @@ from .astradb import AstraVectorStoreComponent
 from .astradb_graph import AstraGraphVectorStoreComponent
 from .cassandra import CassandraVectorStoreComponent
 from .cassandra_graph import CassandraGraphVectorStoreComponent
-from .chroma import ChromaVectorStoreComponent
-from .clickhouse import ClickhouseVectorStoreComponent
-from .couchbase import CouchbaseVectorStoreComponent
+from .Chroma import ChromaVectorStoreComponent
+from .Clickhouse import ClickhouseVectorStoreComponent
+from .Couchbase import CouchbaseVectorStoreComponent
 from .elasticsearch import ElasticsearchVectorStoreComponent
-from .faiss import FaissVectorStoreComponent
+from .FAISS import FaissVectorStoreComponent
 from .hcd import HCDVectorStoreComponent
-from .milvus import MilvusVectorStoreComponent
+from .Milvus import MilvusVectorStoreComponent
 from .mongodb_atlas import MongoVectorStoreComponent
-from .opensearch import OpenSearchVectorStoreComponent
+from .OpenSearch import OpenSearchVectorStoreComponent
 from .pgvector import PGVectorStoreComponent
 from .pinecone import PineconeVectorStoreComponent
-from .qdrant import QdrantVectorStoreComponent
+from .Qdrant import QdrantVectorStoreComponent
 from .redis import RedisVectorStoreComponent
 from .supabase import SupabaseVectorStoreComponent
-from .upstash import UpstashVectorStoreComponent
-from .vectara import VectaraVectorStoreComponent
+from .Upstash import UpstashVectorStoreComponent
+from .Vectara import VectaraVectorStoreComponent
 from .vectara_rag import VectaraRagComponent
 from .vectara_self_query import VectaraSelfQueryRetriverComponent
-from .weaviate import WeaviateVectorStoreComponent
+from .Weaviate import WeaviateVectorStoreComponent
 
 __all__ = [
     "AstraGraphVectorStoreComponent",

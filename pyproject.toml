@@ -116,6 +116,8 @@ dependencies = [
     "sqlalchemy[aiosqlite,postgresql_psycopg2binary,postgresql_psycopgbinary]>=2.0.36",
     "atlassian-python-api>=3.41.16",
     "mem0ai>=0.1.26",
+    "pygridgain @ file:///C:/Users/adish/Documents/Gridgain_repos/Gridgain/python-thin-client",    
+    "gg_langchain @ file:///C:/Users/adish/Documents/Gridgain_repos/gg8_langchain"
 ]
 
 [project.urls]
@@ -271,6 +273,9 @@ disable_error_code = ["type-var"]
 namespace_packages = true
 mypy_path = "langflow"
 ignore_missing_imports = true
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [build-system]
 requires = ["hatchling"]
