@@ -83,7 +83,7 @@ Another content"""
 
     @patch('base.langflow.components.vectorstores.GridGain.Client')
     def test_connect_to_ignite(self, mock_client, component):
-        """Test connection to Ignite/GridGain server."""
+        """Test connection to GridGain server."""
         mock_client_instance = MagicMock()
         mock_client.return_value = mock_client_instance
         
