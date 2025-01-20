@@ -3,7 +3,7 @@ import pandas as pd
 from loguru import logger
 from langflow.base.vectorstores.model import LCVectorStoreComponent, check_cached_vector_store
 from langflow.helpers.data import docs_to_data
-from langflow.io import HandleInput, IntInput, MessageTextInput, StrInput, FileInput
+from langflow.io import HandleInput, IntInput, MessageTextInput, StrInput, FileInput, FloatInput
 from langflow.schema import Data
 from langchain.schema import Document
 from pygridgain import Client
@@ -22,6 +22,7 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
         StrInput(name="cache_name", display_name="Cache Name", required=True),
         StrInput(name="host", display_name="Host", required=True),
         IntInput(name="port", display_name="Port", required=True),
+        FloatInput(name="score_threshold", display_name="score_threshold ", required=True, value=0.6),
         FileInput(
             name="csv_file",
             display_name="CSV File",
@@ -129,6 +130,7 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             docs = vector_store.similarity_search(
                 query=self.search_query,
                 k=self.number_of_results,
+                score_threshold=self.score_threshold
             )
 
             data = docs_to_data(docs)
