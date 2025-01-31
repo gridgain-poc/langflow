@@ -76,7 +76,7 @@ class JSONSerializableGridGainChatHistory:
 class GridGainChatMemory(LCChatMemoryComponent):
     """Chat memory component that stores history in GridGain."""
     display_name = "GridGain Chat Memory"
-    description = "Retrieves and stores chat messages using GridGain."
+    description = "Retrieves and stores chat messages by using GridGain."
     name = "GridGainChatMemory"
     icon: str = "GridGain"
     inputs = [
@@ -97,20 +97,20 @@ class GridGainChatMemory(LCChatMemoryComponent):
         StrInput(
             name="cache_name",
             display_name="Cache Name",
-            info="The name of the cache within GridGain where messages will be stored.",
+            info="Name of the cache within GridGain where messages will be stored.",
             required=True,
             value="langchain_message_store",
         ),
         MessageTextInput(
             name="session_id",
             display_name="Session ID",
-            info="The session ID of the chat. If empty, the current session ID parameter will be used.",
+            info="Chat session ID. If empty, the current session ID parameter will be used.",
             advanced=True,
         ),
         StrInput(
             name="client_type",
             display_name="Client Type",
-            info="Type of client to use (pygridgain).",
+            info="Type of client to use pygridgain.",
             required=True,
             value="pygridgain",
         ),
@@ -121,10 +121,7 @@ class GridGainChatMemory(LCChatMemoryComponent):
         try:
             from langchain_gridgain.chat_message_histories import GridGainChatMessageHistory
         except ImportError as e:
-            msg = (
-                "Could not import GridGain chat message history implementation. "
-                "Please ensure the implementation file is in the correct location."
-            )
+            msg = ("Please ensure the implementation file is in the correct location.")
             raise ImportError(msg) from e
 
         # Create a custom class that combines GridGainChatMessageHistory with JSON serialization
