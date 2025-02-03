@@ -669,14 +669,14 @@ This component implements a Vector Store using GridGain with CSV ingestion and s
 
 | Name              | Type          | Description                                                                   |
 |-------------------|---------------|----------------------------------------------------------------               |
-| cache_name        | String        | The name of the cache within GridGain where vectors will be stored (required) |
-| host              | String        | GridGain server host address (required)                                       |
-| port              | Integer       | GridGain server port number (required)                                        |
-| score_threshold   | Float         | Minimum similarity score threshold for search results (required, default: 0.6)|
+| cache_name        | String        | The name of the cache within GridGain where vectors will be stored. Required. |
+| host              | String        | GridGain server host address. Required.                                       |
+| port              | Integer       | GridGain server port number. Required.                                        |
+| score_threshold   | Float         | Minimum similarity score threshold for search results. Required. Default value: 0.6|
 | csv_file          | File          | Optional CSV file for data ingestion                                          |
 | embedding         | Embeddings    | Embedding model to use for vector creation                                    |
 | search_query      | String        | Query string for similarity search                                            |
-| number_of_results | Integer       | Number of results to return in similarity search (default: 4)                 |
+| number_of_results | Integer       | Number of results to return in similarity search. Default value: 4            |
 
 ### Outputs
 
