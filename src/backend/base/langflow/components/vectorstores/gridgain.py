@@ -1,16 +1,19 @@
-from typing import TYPE_CHECKING, Optional, List, Union
-import pandas as pd
+from typing import List
 from loguru import logger
+import uuid
+
 from langflow.base.vectorstores.model import LCVectorStoreComponent, check_cached_vector_store
 from langflow.helpers.data import docs_to_data
-from langflow.io import HandleInput, IntInput, MessageTextInput, StrInput, FileInput, FloatInput
+from langflow.io import HandleInput, IntInput, MessageTextInput, StrInput, FloatInput
 from langflow.schema import Data
 from langchain.schema import Document
+
 from pygridgain import Client
 from langchain_gridgain.vectorstores import GridGainVectorStore
 
+
 class GridGainVectorStoreComponent(LCVectorStoreComponent):
-    """GridGain Vector Store with enhanced CSV handling capabilities."""
+    """GridGain Vector Store with data ingestion capabilities."""
 
     display_name: str = "GridGain"
     description: str = "GridGain Vector Store with CSV ingestion and search capabilities"
@@ -22,17 +25,13 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
         StrInput(name="cache_name", display_name="Cache Name", required=True),
         StrInput(name="host", display_name="Host", required=True),
         IntInput(name="port", display_name="Port", required=True),
-        FloatInput(name="score_threshold", display_name="score_threshold ", required=True, value=0.6),
-        FileInput(
-            name="csv_file",
-            display_name="CSV File",
-            file_types=["csv"],
-            required=False,
-        ),
+        FloatInput(name="score_threshold", display_name="Score Threshold", required=True, value=0.6),
+
         HandleInput(
             name="embedding",
             display_name="Embedding",
             input_types=["Embeddings"],
+            required=True,
         ),
         MessageTextInput(
             name="search_query",
@@ -44,84 +43,118 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             info="Number of results to return.",
             value=4,
         ),
+        *LCVectorStoreComponent.inputs,
     ]
 
-    def process_csv(self, csv_path: str) -> List[Document]:
-        """Process CSV file and convert to list of document objects."""
-        try:
-            df = pd.read_csv(csv_path)
-            documents = []
+    def _create_documents_from_records(self, records: List[dict]) -> List[Document]:
+        """Create Document objects from records with consistent metadata handling."""
+        documents = []
+        for record in records:
+            title = str(record.get('title', ''))
+            text = str(record.get('text', ''))
             
-            for _, row in df.iterrows():
-                title = row.get('title', '')
-                text = row.get('text', '')
-                
-                content = f"{title}\n{text}".strip()
-                
-                metadata = {
-                    "id": str(row.get('id', '')),
-                    "url": row.get('url', ''),
-                    "vector_id": row.get('vector_id', '')
-                }
-                
-                if content:
-                    documents.append(
-                        Document(
-                            page_content=content,
-                            metadata=metadata
-                        )
+            # Combine title and text for content
+            content = f"{title}\n{text}".strip()
+            
+            # Ensure ID is a string and present
+            doc_id = str(record.get('id', uuid.uuid4()))
+            
+            metadata = {
+                "id": doc_id,
+                "url": str(record.get('url', '')),
+                "title": title,
+                "vector_id": str(record.get('vector_id', doc_id))
+            }
+            
+            if content:
+                documents.append(
+                    Document(
+                        page_content=content,
+                        metadata=metadata
                     )
+                )
+        
+        logger.info(f"Created {len(documents)} documents")
+        return documents
+
+    def _process_data_input(self, data_input: Data) -> Document:
+        """Process a single Data input into a Document with proper metadata."""
+        try:
+            # Convert Data to LangChain Document
+            doc = data_input.to_lc_document()
             
-            logger.info(f"Processed {len(documents)} documents from CSV")
-            return documents
+            # Ensure document has metadata
+            if not hasattr(doc, 'metadata') or doc.metadata is None:
+                doc.metadata = {}
+            
+            # Ensure required metadata fields with proper formatting
+            doc_id = str(doc.metadata.get('id', uuid.uuid4()))
+            doc.metadata.update({
+                'id': doc_id,
+                'vector_id': str(doc.metadata.get('vector_id', doc_id)),
+                'url': str(doc.metadata.get('url', '')),
+                'title': str(doc.metadata.get('title', ''))
+            })
+            
+            return doc
         except Exception as e:
-            logger.error(f"Error processing CSV file: {e}")
+            logger.error(f"Error processing data input: {e}")
             raise
 
-    @check_cached_vector_store
-    def build_vector_store(self) -> "GridGainVectorStore":
-        """Builds the GridGain Vector Store object with CSV support."""
+    def _add_documents_to_vector_store(self, vector_store: GridGainVectorStore) -> None:
+        """Add documents from ingest_data to the vector store with enhanced error handling."""
         try:
-            # Connect to GridGain using provided host and port
-            client = self.connect_to_gridgain(self.host, self.port)
+            documents = []
+            for _input in self.ingest_data or []:
+                if isinstance(_input, Data):
+                    doc = self._process_data_input(_input)
+                    documents.append(doc)
+                else:
+                    msg = "Vector Store Inputs must be Data objects."
+                    raise TypeError(msg)
+
+            if documents:
+                logger.info(f"Adding {len(documents)} documents to the Vector Store")
+                vector_store.add_documents(documents)
+                self.status = f"Successfully added {len(documents)} documents to GridGain"
+            else:
+                logger.info("No documents to add to the Vector Store")
+
+        except Exception as e:
+            msg = f"Error adding documents to GridGainVectorStore: {e}"
+            logger.error(msg)
+            raise ValueError(msg) from e
+
+
+    @check_cached_vector_store
+    def build_vector_store(self) -> GridGainVectorStore:
+        """Build and return a configured GridGain vector store."""
+        try:
+            # Connect to GridGain
+            client = Client()
+            client.connect(self.host, self.port)
             logger.info(f"Connected to GridGain at {self.host}:{self.port}")
 
-            gridgain = GridGainVectorStore(
+            # Initialize vector store
+            vector_store = GridGainVectorStore(
                 cache_name=self.cache_name,
                 embedding=self.embedding,
                 client=client
             )
 
-            # Process CSV if provided
-            if hasattr(self, 'csv_file') and self.csv_file:
-                documents = self.process_csv(self.csv_file)
-                if documents:
-                    logger.info(f"Adding {len(documents)} documents from CSV to GridGain")
-                    gridgain.add_documents(documents)
-                    self.status = f"Added {len(documents)} documents from CSV to GridGain"
+            # Add documents from ingest_data
+            self._add_documents_to_vector_store(vector_store)
 
-            return gridgain
+            return vector_store
 
         except Exception as e:
-            logger.error(f"Error during GridGain Vector Store initialization: {e}")
-            self.status = f"Error: {str(e)}"
-            raise
-    
-    def connect_to_gridgain(self, host: str, port: int) -> Client:
-        """Connect to GridGain server using provided host and port."""
-        try:
-            client = Client()
-            client.connect(host, port)
-            logger.info(f"Connected to GridGain server at {host}:{port} successfully.")
-            return client
-        except Exception as e:
-            logger.exception(f"Failed to connect to GridGain: {e}")
+            logger.error(f"Error building vector store: {e}")
             raise
 
-    def search_documents(self) -> list[Data]:
-        """Search documents with enhanced error handling."""
+    def search_documents(self, vector_store=None) -> list[Data]:
+        """Search documents with similarity search."""
         try:
-            vector_store = self.build_vector_store()
+            vector_store = vector_store or self.build_vector_store()
 
             if not self.search_query or not isinstance(self.search_query, str) or not self.search_query.strip():
                 self.status = "No search query provided"
