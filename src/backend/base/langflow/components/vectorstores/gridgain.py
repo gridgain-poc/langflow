@@ -1,4 +1,3 @@
-from typing import List
 from loguru import logger
 import uuid
 
@@ -16,7 +15,7 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
     """GridGain Vector Store with data ingestion capabilities."""
 
     display_name: str = "GridGain"
-    description: str = "GridGain Vector Store with CSV ingestion and search capabilities"
+    description: str = "GridGain Vector Store with data ingestion and search capabilities"
     documentation = "https://www.gridgain.com/docs/latest/index"
     name = "GridGain"
     icon = "GridGain"
@@ -26,7 +25,6 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
         StrInput(name="host", display_name="Host", required=True),
         IntInput(name="port", display_name="Port", required=True),
         FloatInput(name="score_threshold", display_name="Score Threshold", required=True, value=0.6),
-
         HandleInput(
             name="embedding",
             display_name="Embedding",
@@ -45,37 +43,6 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
         ),
         *LCVectorStoreComponent.inputs,
     ]
-
-    def _create_documents_from_records(self, records: List[dict]) -> List[Document]:
-        """Create Document objects from records with consistent metadata handling."""
-        documents = []
-        for record in records:
-            title = str(record.get('title', ''))
-            text = str(record.get('text', ''))
-            
-            # Combine title and text for content
-            content = f"{title}\n{text}".strip()
-            
-            # Ensure ID is a string and present
-            doc_id = str(record.get('id', uuid.uuid4()))
-            
-            metadata = {
-                "id": doc_id,
-                "url": str(record.get('url', '')),
-                "title": title,
-                "vector_id": str(record.get('vector_id', doc_id))
-            }
-            
-            if content:
-                documents.append(
-                    Document(
-                        page_content=content,
-                        metadata=metadata
-                    )
-                )
-        
-        logger.info(f"Created {len(documents)} documents")
-        return documents
 
     def _process_data_input(self, data_input: Data) -> Document:
         """Process a single Data input into a Document with proper metadata."""
@@ -102,20 +69,25 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             raise
 
     def _add_documents_to_vector_store(self, vector_store: GridGainVectorStore) -> None:
-        """Add documents from ingest_data to the vector store with enhanced error handling."""
+        """Add documents from ingest_data to the vector store using add_texts."""
         try:
             documents = []
+            texts = []
+            metadatas = []
+            
             for _input in self.ingest_data or []:
                 if isinstance(_input, Data):
                     doc = self._process_data_input(_input)
                     documents.append(doc)
+                    texts.append(doc.page_content)
+                    metadatas.append(doc.metadata)
                 else:
                     msg = "Vector Store Inputs must be Data objects."
                     raise TypeError(msg)
 
             if documents:
                 logger.info(f"Adding {len(documents)} documents to the Vector Store")
-                vector_store.add_documents(documents)
+                vector_store.add_texts(texts=texts, metadatas=metadatas)
                 self.status = f"Successfully added {len(documents)} documents to GridGain"
             else:
                 logger.info("No documents to add to the Vector Store")
@@ -124,7 +96,6 @@ class GridGainVectorStoreComponent(LCVectorStoreComponent):
             msg = f"Error adding documents to GridGainVectorStore: {e}"
             logger.error(msg)
             raise ValueError(msg) from e
-
 
     @check_cached_vector_store
     def build_vector_store(self) -> GridGainVectorStore:
