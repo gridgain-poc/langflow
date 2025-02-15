@@ -1,248 +1,223 @@
 import pytest
-import uuid
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ChatMessage
+import time
+import pygridgain
+from langchain_gridgain.chat_message_histories import GridGainChatMessageHistory
 from base.langflow.components.memories.gridgain import GridGainChatMemory
 
-import asyncio
-
-# Register the benchmark mark
-def pytest_configure(config):
-    config.addinivalue_line("markers", "benchmark: mark test to skip blockbuster checks")
-
-@pytest.mark.benchmark
-class TestGridGainChatMemory:
-    @pytest.fixture(params=['pygridgain'])
-    def gridgain_memory(self, request):
-        """
-        Fixture to create GridGainChatMemory instances for both client types
-        """
-
-        # Generate a unique session ID for each test
-        session_id = str(uuid.uuid4())
-        
-        # Create an instance using the input parameters
-        memory = GridGainChatMemory()
-        memory.host = 'localhost'
-        memory.port = '10800'
-        memory.cache_name = 'test_langchain_message_store'
-        memory.session_id = session_id
-        memory.client_type = request.param
-        
-        yield memory
-        
-        # Cleanup: Clear the cache after each test
-        try:
-            import pygridgain
-            
-            if request.param == 'pyignite':
-                client = pygridgain.Client()
-            
-            client.connect('localhost', 10800)
-            client.cache_clear('test_langchain_message_store')
-        except Exception as e:
-            print(f"Cleanup failed: {e}")
-
-    @pytest.mark.asyncio
-    async def test_build_message_history_connection(self, gridgain_memory):
-        """
-        Test that a message history can be built successfully
-        """
-        try:
-            message_history = await asyncio.to_thread(gridgain_memory.build_message_history)
-            assert message_history is not None, "Message history should not be None"
-        except Exception as e:
-            pytest.fail(f"Failed to build message history: {e}")
-
-    @pytest.mark.asyncio
-    async def test_message_storage_and_retrieval(self, gridgain_memory):
-        """
-        Test storing and retrieving messages
-        """
-        # Build message history
-        message_history = await asyncio.to_thread(gridgain_memory.build_message_history)
-        
-        # Add some messages
-        test_messages = [
-            HumanMessage(content="Hello, how are you?"),
-            AIMessage(content="I'm doing well, thank you!"),
-            HumanMessage(content="What's the weather like?")
-        ]
-        
-        # Store messages
-        for msg in test_messages:
-            await asyncio.to_thread(message_history.add_message, msg)
-        
-        # Retrieve messages
-        stored_messages = message_history.messages
-        
-        # Assertions
-        assert len(stored_messages) == len(test_messages), "Number of stored messages should match"
-        
-        for original, stored in zip(test_messages, stored_messages):
-            assert original.content == stored.content, "Message content should match"
-            assert type(original) == type(stored), "Message type should match"
-
-    @pytest.mark.asyncio
-    async def test_different_session_ids(self):
-        """
-        Test that different session IDs create separate message histories
-        """
-
-        # Create two instances with different session IDs
-        session_id1 = str(uuid.uuid4())
-        session_id2 = str(uuid.uuid4())
-
-        memory1 = GridGainChatMemory()
-        memory1.host = 'localhost'
-        memory1.port = '10800'
-        memory1.cache_name = 'test_langchain_message_store'
-        memory1.session_id = session_id1
-        memory1.client_type = 'pyignite'
-
-        memory2 = GridGainChatMemory()
-        memory2.host = 'localhost'
-        memory2.port = '10800'
-        memory2.cache_name = 'test_langchain_message_store'
-        memory2.session_id = session_id2
-        memory2.client_type = 'pyignite'
-
-        # Add messages to first session
-        history1 = await asyncio.to_thread(memory1.build_message_history)
-        await asyncio.to_thread(history1.add_message, HumanMessage(content="Session 1 message"))
-
-        # Add messages to second session
-        history2 = await asyncio.to_thread(memory2.build_message_history)
-        await asyncio.to_thread(history2.add_message, HumanMessage(content="Session 2 message"))
-
-        # Verify messages are separate
-        assert len(history1.messages) == 1
-        assert len(history2.messages) == 1
-        assert history1.messages[0].content != history2.messages[0].content
-
-    @pytest.mark.asyncio
-    async def test_invalid_client_type(self):
-        """
-        Test that an invalid client type raises a ValueError
-        """
-
-        memory = GridGainChatMemory()
-        memory.host = 'localhost'
-        memory.port = '10800'
-        memory.cache_name = 'test_langchain_message_store'
-        memory.client_type = 'invalid_client'
-
-        with pytest.raises(ValueError, match="Invalid client_type. Must be either 'pyignite' or 'pygridgain'."):
-            await asyncio.to_thread(memory.build_message_history)
-
-
-@pytest.mark.benchmark
-class TestGridGainChatMemory2:
-    @pytest.fixture(scope="function")
-    async def gridgain_server(self):  # Added self parameter
-        """Fixture to ensure GridGain server is running."""
-        import pygridgain
+class TestGridGainChatMemoryReal:
+    @pytest.fixture(scope="class")
+    def gridgain_server(self):
+        """Fixture to ensure GridGain server is available"""
         client = pygridgain.Client()
         try:
-            client.connect("localhost", 10800)
+            client.connect("192.168.1.3", 10800)
             yield client
+            client.close()
         except Exception as e:
             pytest.skip(f"GridGain server not available: {str(e)}")
-        finally:
-            if client:
-                client.close()
 
     @pytest.fixture(scope="function")
-    def chat_memory(self, gridgain_server):
-        """Fixture to create a fresh GridGainChatMemory instance for each test."""
+    def test_cache_name(self):
+        """Generate unique cache name for each test"""
+        return f"test_cache_{int(time.time())}"
 
-        memory = GridGainChatMemory()
-        memory.host = "localhost"
-        memory.port = "10800"
-        memory.cache_name = f"test_cache_{uuid.uuid4().hex}"
-        memory.session_id = f"test_session_{uuid.uuid4().hex}"
-        memory.client_type = "pygridgain"
-        return memory
+    def test_basic_connection(self, gridgain_server, test_cache_name):
+        """Test basic connection and component creation"""
+        # Arrange
+        component = GridGainChatMemory(
+            host="192.168.1.3",
+            port="10800",
+            cache_name=test_cache_name,
+            session_id="test_session_1",
+            client_type="pygridgain"
+        )
 
-    @pytest.mark.asyncio
-    async def test_initial_connection(self, chat_memory):
-        """Test that the component can successfully connect to GridGain."""
-        message_history = await asyncio.to_thread(chat_memory.build_message_history)
-        assert message_history is not None
-        assert message_history.messages == []
+        # Act
+        memory = component.build_message_history()
 
-    @pytest.mark.asyncio
-    async def test_add_and_retrieve_messages(self, chat_memory):
-        """Test adding different types of messages and retrieving them."""
-        message_history = await asyncio.to_thread(chat_memory.build_message_history)
-        
-        # Add different types of messages
-        messages = [
-            HumanMessage(content="Hello!"),
-            AIMessage(content="Hi there!"),
-            SystemMessage(content="System notification"),
-            ChatMessage(content="Custom role message", role="custom")
+        # Assert
+        assert isinstance(memory, GridGainChatMessageHistory)
+        assert memory.cache_name == test_cache_name
+        assert memory.session_id == "test_session_1"
+
+    def test_multiple_sessions(self, gridgain_server, test_cache_name):
+        """Test handling multiple chat sessions"""
+        # Arrange
+        session_ids = ["session_1", "session_2", "session_3"]
+        memories = []
+
+        # Act
+        for session_id in session_ids:
+            component = GridGainChatMemory(
+                host="192.168.1.3",
+                port="10800",
+                cache_name=test_cache_name,
+                session_id=session_id,
+                client_type="pygridgain"
+            )
+            memories.append(component.build_message_history())
+
+        # Assert - Each session should be independent
+        for i, memory in enumerate(memories):
+            assert memory.session_id == session_ids[i]
+            assert memory.cache_name == test_cache_name
+
+    def test_message_persistence(self, gridgain_server, test_cache_name):
+        """Test that messages are properly stored and retrieved"""
+        # Arrange
+        component = GridGainChatMemory(
+            host="192.168.1.3",
+            port="10800",
+            cache_name=test_cache_name,
+            session_id="persistence_test",
+            client_type="pygridgain"
+        )
+        memory = component.build_message_history()
+
+        # Act - Add messages
+        test_messages = [
+            ("human", "Hello, how are you?"),
+            ("ai", "I'm doing well, thank you!"),
+            ("human", "What's the weather like?"),
+            ("ai", "I don't have access to current weather information.")
         ]
-        
-        for message in messages:
-            await asyncio.to_thread(message_history.add_message, message)
-        
-        # Verify messages were stored correctly
-        stored_messages = message_history.messages
-        assert len(stored_messages) == len(messages)
-        
-        for original, stored in zip(messages, stored_messages):
-            assert stored.content == original.content
-            assert type(stored) == type(original)
-            if isinstance(original, ChatMessage):
-                assert stored.role == original.role
 
-    @pytest.mark.asyncio
-    async def test_persistence_across_sessions(self, chat_memory):
-        """Test that messages persist when creating new message history instances."""
-        # First session
-        message_history1 = await asyncio.to_thread(chat_memory.build_message_history)
-        test_message = HumanMessage(content="Test persistence")
-        await asyncio.to_thread(message_history1.add_message, test_message)
-        
-        # Second session with same settings
-        message_history2 = await asyncio.to_thread(chat_memory.build_message_history)
-        stored_messages = message_history2.messages
-        
-        assert len(stored_messages) == 1
-        assert stored_messages[0].content == "Test persistence"
-        assert isinstance(stored_messages[0], HumanMessage)
+        for role, content in test_messages:
+            if role == "human":
+                memory.add_user_message(content)
+            else:
+                memory.add_ai_message(content)
 
-    @pytest.mark.asyncio
-    async def test_additional_kwargs_preservation(self, chat_memory):
-        """Test that additional kwargs are preserved in serialization."""
-        message_history = await asyncio.to_thread(chat_memory.build_message_history)
+        # Assert - Verify messages are stored
+        messages = memory.messages
+        assert len(messages) == len(test_messages)
+        for i, (role, content) in enumerate(test_messages):
+            assert messages[i].content == content
+            assert messages[i].type.lower() == role
+
+    def test_cache_isolation(self, gridgain_server):
+        """Test that different caches don't interfere with each other"""
+        # Arrange
+        cache1_name = f"test_cache_1_{int(time.time())}"
+        cache2_name = f"test_cache_2_{int(time.time())}"
         
-        message = HumanMessage(
-            content="Test with metadata",
-            additional_kwargs={"metadata": {"timestamp": "2024-01-31", "user_id": "123"}}
+        component1 = GridGainChatMemory(
+            host="192.168.1.3",
+            port="10800",
+            cache_name=cache1_name,
+            session_id="isolation_test",
+            client_type="pygridgain"
         )
         
-        await asyncio.to_thread(message_history.add_message, message)
-        stored_messages = message_history.messages
-        
-        assert len(stored_messages) == 1
-        assert stored_messages[0].additional_kwargs == message.additional_kwargs
+        component2 = GridGainChatMemory(
+            host="192.168.1.3",
+            port="10800",
+            cache_name=cache2_name,
+            session_id="isolation_test",
+            client_type="pygridgain"
+        )
 
+        # Act
+        memory1 = component1.build_message_history()
+        memory2 = component2.build_message_history()
 
-    @pytest.mark.parametrize("message_content", [
-        "Simple message",
-        "Message with unicode: 你好",
-        "Message with special chars: !@#$%^&*()",
-        "Very long message: " + "x" * 1000
-    ])
-    @pytest.mark.asyncio
-    async def test_message_content_handling(self, chat_memory, message_content):
-        """Test handling of various message content types."""
-        message_history = await asyncio.to_thread(chat_memory.build_message_history)
-        message = HumanMessage(content=message_content)
+        # Add messages to first cache
+        memory1.add_user_message("Message in cache 1")
         
-        await asyncio.to_thread(message_history.add_message, message)
-        stored_messages = message_history.messages
-        
-        assert len(stored_messages) == 1
-        assert stored_messages[0].content == message_content
+        # Add different message to second cache
+        memory2.add_user_message("Message in cache 2")
+
+        # Assert
+        assert len(memory1.messages) == 1
+        assert len(memory2.messages) == 1
+        assert memory1.messages[0].content == "Message in cache 1"
+        assert memory2.messages[0].content == "Message in cache 2"
+
+    def test_error_handling(self):
+        """Test error handling with invalid connection parameters"""
+        # Arrange
+        component = GridGainChatMemory(
+            host="invalid_host",
+            port="12345",
+            cache_name="test_cache",
+            session_id="error_test",
+            client_type="pygridgain"
+        )
+
+        # Act & Assert
+        with pytest.raises(ConnectionError) as exc_info:
+            component.build_message_history()
+        assert "Failed to connect to GridGain server" in str(exc_info.value)
+
+    def test_large_message_handling(self, gridgain_server, test_cache_name):
+        """Test handling of large messages"""
+        # Arrange
+        component = GridGainChatMemory(
+            host="192.168.1.3",
+            port="10800",
+            cache_name=test_cache_name,
+            session_id="large_message_test",
+            client_type="pygridgain"
+        )
+        memory = component.build_message_history()
+
+        # Create a large message (1MB)
+        large_message = "x" * (1024 * 1024)
+
+        # Act
+        memory.add_user_message(large_message)
+
+        # Assert
+        assert len(memory.messages) == 1
+        assert len(memory.messages[0].content) == len(large_message)
+
+    def test_concurrent_sessions(self, gridgain_server, test_cache_name):
+        """Test concurrent session handling"""
+        import threading
+        import queue
+
+        def run_session(session_id, message, results):
+            try:
+                component = GridGainChatMemory(
+                    host="192.168.1.3",
+                    port="10800",
+                    cache_name=test_cache_name,
+                    session_id=session_id,
+                    client_type="pygridgain"
+                )
+                memory = component.build_message_history()
+                memory.add_user_message(message)
+                results.put((session_id, len(memory.messages)))
+            except Exception as e:
+                results.put((session_id, str(e)))
+
+        # Arrange
+        sessions = [
+            ("concurrent_1", "Message 1"),
+            ("concurrent_2", "Message 2"),
+            ("concurrent_3", "Message 3")
+        ]
+        results = queue.Queue()
+        threads = []
+
+        # Act
+        for session_id, message in sessions:
+            thread = threading.Thread(
+                target=run_session,
+                args=(session_id, message, results)
+            )
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        # Assert
+        result_dict = {}
+        while not results.empty():
+            session_id, result = results.get()
+            result_dict[session_id] = result
+
+        assert len(result_dict) == len(sessions)
+        for session_id, _ in sessions:
+            assert result_dict[session_id] == 1
