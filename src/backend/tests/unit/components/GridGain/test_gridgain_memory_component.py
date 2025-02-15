@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 from langflow.base.memory.model import LCChatMemoryComponent
 from base.langflow.components.memories.gridgain import GridGainChatMemory
-
+from langflow.inputs import MessageTextInput
 
 # Test component class
 def test_gridgain_chat_memory_initialization():
@@ -17,31 +17,22 @@ def test_gridgain_chat_memory_initialization():
     assert memory.port == "10800"
     assert memory.cache_name == "langchain_message_store"
     assert memory.client_type == "pygridgain"
+    assert memory.icon == "GridGain"
 
-@pytest.mark.parametrize(
-    "client_type,expected_module",
-    [
-        ("pyignite", "pyignite"),
-        ("pygridgain", "pygridgain"),
-    ],
-)
-def test_client_creation_with_different_types(client_type, expected_module):
-    """Test creation of different client types."""
+def test_input_configuration():
+    """Test the input field configuration of the component."""
     memory = GridGainChatMemory()
-    memory.client_type = client_type
     
-    with patch(f"{expected_module}.Client") as mock_client:
-        mock_client_instance = Mock()
-        mock_client.return_value = mock_client_instance
-        
-        with patch("langchain_gridgain.chat_message_histories.GridGainChatMessageHistory"):
-            memory.build_message_history()
+    # Test required inputs
+    required_inputs = ["host", "port", "cache_name", "client_type"]
+    for input_field in memory.inputs:
+        if input_field.name in required_inputs:
+            assert input_field.required is True
             
-        mock_client.assert_called_once()
-        mock_client_instance.connect.assert_called_once_with(
-            memory.host, 
-            int(memory.port)
-        )
+    # Test session_id configuration
+    session_id_input = next(i for i in memory.inputs if i.name == "session_id")
+    assert session_id_input.advanced is True
+    assert isinstance(session_id_input, MessageTextInput)
 
 def test_invalid_client_type():
     """Test handling of invalid client type."""
@@ -52,7 +43,7 @@ def test_invalid_client_type():
         memory.build_message_history()
     
     assert "Invalid client_type" in str(exc_info.value)
-    assert "Must be either 'pyignite' or 'pygridgain'" in str(exc_info.value)
+    assert "Must be 'pygridgain'" in str(exc_info.value)
 
 def test_connection_error_handling():
     """Test handling of connection errors."""
@@ -106,13 +97,3 @@ def test_custom_connection_parameters(mock_client):
         memory.build_message_history()
     
     mock_client.connect.assert_called_once_with("custom_host", 12345)
-
-def test_input_validation():
-    """Test validation of required input parameters."""
-    memory = GridGainChatMemory()
-    
-    # Verify required inputs are present
-    required_inputs = ["host", "port", "cache_name", "client_type"]
-    for input_field in memory.inputs:
-        if input_field.name in required_inputs:
-            assert input_field.required is True

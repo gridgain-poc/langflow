@@ -3,8 +3,10 @@ import pandas as pd
 import tempfile
 import os
 from langchain.schema import Document
+from langflow.schema import Data
 from langchain.embeddings import OpenAIEmbeddings
 from base.langflow.components.vectorstores.gridgain import GridGainVectorStoreComponent
+from pygridgain import Client
 
 class TestGridGainVectorStore(unittest.TestCase):
     @classmethod
@@ -33,7 +35,9 @@ class TestGridGainVectorStore(unittest.TestCase):
         self.component.embedding = self.embeddings
 
         # Connect to GridGain and clear test cache
-        self.client = self.component.connect_to_gridgain(self.host, self.port)
+        
+        self.client = Client()
+        self.client.connect(self.host, self.port)
         test_cache = self.client.get_or_create_cache(self.cache_name)
         test_cache.clear()
 
@@ -42,27 +46,27 @@ class TestGridGainVectorStore(unittest.TestCase):
         return sum(1 for _ in cache.scan())
 
 
-    def create_test_csv(self):
-        """Create a temporary CSV file for testing."""
-        data = {
-            'id': [1, 2, 3],
-            'title': ['Integration Test 1', 'Integration Test 2', 'Integration Test 3'],
-            'text': ['This is content for integration test 1', 
-                    'This is content for integration test 2', 
-                    'This is content for integration test 3'],
-            'url': ['http://test1.com', 'http://test2.com', 'http://test3.com'],
-            'vector_id': ['v1', 'v2', 'v3']
-        }
-        df = pd.DataFrame(data)
-        
-        temp_dir = tempfile.mkdtemp()
-        csv_path = os.path.join(temp_dir, 'test.csv')
-        df.to_csv(csv_path, index=False)
-        return csv_path
+    def create_test_data(self):
+        """Create test Data objects for ingest_data testing."""
+        test_data = []
+        for i in range(1, 4):
+            data = Data(
+                content=f"This is content for integration test {i}",
+                metadata={
+                    "id": i,
+                    "title": f"Integration Test {i}",
+                    "url": f"http://test{i}.com",
+                    "vector_id": f"v{i}"
+                }
+            )
+            test_data.append(data)
+        return test_data
 
     def test_1_connection(self):
         """Test real GridGain connection."""
-        client = self.component.connect_to_gridgain(self.host, self.port)
+        from pygridgain import Client
+        client = Client()
+        client.connect(self.host, self.port)
         self.assertTrue(client.connect())
         
         # Verify we can interact with the cache
@@ -79,22 +83,24 @@ class TestGridGainVectorStore(unittest.TestCase):
         cache_names = self.client.get_cache_names()
         self.assertIn(self.cache_name, cache_names)
 
-    def test_3_process_and_store_csv(self):
-        """Test CSV processing and storage."""
-        csv_path = self.create_test_csv()
-        try:
-            self.component.csv_file = csv_path
-            vector_store = self.component.build_vector_store()
-            
-            # Use correct cache entry counting
-            cache = self.client.get_cache(self.cache_name)
-            cache_size = self.count_cache_entries(cache)
-            self.assertEqual(cache_size, 3, f"Expected 3 entries, found {cache_size}")
-            
-        finally:
-            os.remove(csv_path)
+    def test_3_process_and_store_data(self):
+        """Test data processing and storage using ingest_data."""
+        # Create test data
+        test_data = self.create_test_data()
+        
+        # Set ingest_data on the component
+        self.component.ingest_data = test_data
+        
+        # Build vector store which should process and store the data
+        vector_store = self.component.build_vector_store()
+        
+        # Use correct cache entry counting
+        cache = self.client.get_cache(self.cache_name)
+        cache_size = self.count_cache_entries(cache)
+        self.assertEqual(cache_size, 3, f"Expected 3 entries, found {cache_size}")
 
-    def test_search_documents(self):
+
+    def test4_search_documents(self):
         """Test searching documents within the vector store."""
         # Set search query and number of results
         self.component.search_query = "test search"
