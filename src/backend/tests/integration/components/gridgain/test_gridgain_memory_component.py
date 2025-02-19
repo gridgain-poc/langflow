@@ -1,31 +1,34 @@
-import pytest
 import time
+
 import pygridgain
-from langchain_gridgain.chat_message_histories import GridGainChatMessageHistory
+import pytest
 from base.langflow.components.memories.gridgain import GridGainChatMemory
+from langchain_gridgain.chat_message_histories import GridGainChatMessageHistory
+
 
 class TestGridGainChatMemoryReal:
     @pytest.fixture(scope="class")
     def gridgain_server(self):
-        """Fixture to ensure GridGain server is available"""
+        """Fixture to ensure GridGain server is available."""
         client = pygridgain.Client()
         try:
-            client.connect("localhost", 10800)
+            client.connect("192.168.1.4", 10800)
             yield client
             client.close()
         except Exception as e:
-            pytest.skip(f"GridGain server not available: {str(e)}")
+            pytest.skip(f"GridGain server not available: {e}")
+            raise
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture
     def test_cache_name(self):
-        """Generate unique cache name for each test"""
+        """Generate unique cache name for each test."""
         return f"test_cache_{int(time.time())}"
 
-    def test_basic_connection(self, gridgain_server, test_cache_name):
-        """Test basic connection and component creation"""
+    def test_basic_connection(self, test_cache_name):
+        """Test basic connection and component creation."""
         # Arrange
         component = GridGainChatMemory(
-            host="localhost",
+            host="192.168.1.4",
             port="10800",
             cache_name=test_cache_name,
             session_id="test_session_1",
@@ -40,8 +43,8 @@ class TestGridGainChatMemoryReal:
         assert memory.cache_name == test_cache_name
         assert memory.session_id == "test_session_1"
 
-    def test_multiple_sessions(self, gridgain_server, test_cache_name):
-        """Test handling multiple chat sessions"""
+    def test_multiple_sessions(self, test_cache_name):
+        """Test handling multiple chat sessions."""
         # Arrange
         session_ids = ["session_1", "session_2", "session_3"]
         memories = []
@@ -49,7 +52,7 @@ class TestGridGainChatMemoryReal:
         # Act
         for session_id in session_ids:
             component = GridGainChatMemory(
-                host="localhost",
+                host="192.168.1.4",
                 port="10800",
                 cache_name=test_cache_name,
                 session_id=session_id,
@@ -62,11 +65,11 @@ class TestGridGainChatMemoryReal:
             assert memory.session_id == session_ids[i]
             assert memory.cache_name == test_cache_name
 
-    def test_message_persistence(self, gridgain_server, test_cache_name):
-        """Test that messages are properly stored and retrieved"""
+    def test_message_persistence(self, test_cache_name):
+        """Test that messages are properly stored and retrieved."""
         # Arrange
         component = GridGainChatMemory(
-            host="localhost",
+            host="192.168.1.4",
             port="10800",
             cache_name=test_cache_name,
             session_id="persistence_test",
@@ -95,22 +98,22 @@ class TestGridGainChatMemoryReal:
             assert messages[i].content == content
             assert messages[i].type.lower() == role
 
-    def test_cache_isolation(self, gridgain_server):
-        """Test that different caches don't interfere with each other"""
+    def test_cache_isolation(self):
+        """Test that different caches don't interfere with each other."""
         # Arrange
         cache1_name = f"test_cache_1_{int(time.time())}"
         cache2_name = f"test_cache_2_{int(time.time())}"
-        
+
         component1 = GridGainChatMemory(
-            host="localhost",
+            host="192.168.1.4",
             port="10800",
             cache_name=cache1_name,
             session_id="isolation_test",
             client_type="pygridgain"
         )
-        
+
         component2 = GridGainChatMemory(
-            host="localhost",
+            host="192.168.1.4",
             port="10800",
             cache_name=cache2_name,
             session_id="isolation_test",
@@ -123,7 +126,7 @@ class TestGridGainChatMemoryReal:
 
         # Add messages to first cache
         memory1.add_user_message("Message in cache 1")
-        
+
         # Add different message to second cache
         memory2.add_user_message("Message in cache 2")
 
@@ -134,7 +137,7 @@ class TestGridGainChatMemoryReal:
         assert memory2.messages[0].content == "Message in cache 2"
 
     def test_error_handling(self):
-        """Test error handling with invalid connection parameters"""
+        """Test error handling with invalid connection parameters."""
         # Arrange
         component = GridGainChatMemory(
             host="invalid_host",
@@ -149,11 +152,11 @@ class TestGridGainChatMemoryReal:
             component.build_message_history()
         assert "Failed to connect to GridGain server" in str(exc_info.value)
 
-    def test_large_message_handling(self, gridgain_server, test_cache_name):
-        """Test handling of large messages"""
+    def test_large_message_handling(self, test_cache_name):
+        """Test handling of large messages."""
         # Arrange
         component = GridGainChatMemory(
-            host="localhost",
+            host="192.168.1.4",
             port="10800",
             cache_name=test_cache_name,
             session_id="large_message_test",
@@ -171,15 +174,15 @@ class TestGridGainChatMemoryReal:
         assert len(memory.messages) == 1
         assert len(memory.messages[0].content) == len(large_message)
 
-    def test_concurrent_sessions(self, gridgain_server, test_cache_name):
-        """Test concurrent session handling"""
-        import threading
+    def test_concurrent_sessions(self, test_cache_name):
+        """Test concurrent session handling."""
         import queue
+        import threading
 
         def run_session(session_id, message, results):
             try:
                 component = GridGainChatMemory(
-                    host="localhost",
+                    host="192.168.1.4",
                     port="10800",
                     cache_name=test_cache_name,
                     session_id=session_id,
@@ -190,6 +193,7 @@ class TestGridGainChatMemoryReal:
                 results.put((session_id, len(memory.messages)))
             except Exception as e:
                 results.put((session_id, str(e)))
+                raise
 
         # Arrange
         sessions = [

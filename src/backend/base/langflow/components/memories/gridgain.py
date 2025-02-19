@@ -1,8 +1,8 @@
+import pygridgain
+
 from langflow.base.memory.model import LCChatMemoryComponent
 from langflow.field_typing.constants import Memory
 from langflow.inputs import MessageTextInput, StrInput
-
-import pygridgain
 
 
 class GridGainChatMemory(LCChatMemoryComponent):
@@ -19,7 +19,7 @@ class GridGainChatMemory(LCChatMemoryComponent):
             display_name="Host",
             info="GridGain server host address.",
             required=True,
-            value="localhost",
+            value="192.168.1.4",
         ),
         StrInput(
             name="port",
@@ -66,17 +66,15 @@ class GridGainChatMemory(LCChatMemoryComponent):
         if self.client_type.lower() == "pygridgain":
             client = pygridgain.Client()
         else:
-            raise ValueError(
-                "Invalid client_type. Must be 'pygridgain'."
-            )
+            msg ="Invalid client_type. Must be 'pygridgain'."
+            raise ValueError(msg)
 
         # Connect to the GridGain server
         try:
             client.connect(self.host, int(self.port))
         except Exception as e:
-            raise ConnectionError(
-                f"Failed to connect to GridGain server at {self.host}:{self.port}: {str(e)}"
-            )
+            msg = f"Failed to connect to GridGain server at {self.host}:{self.port}: {(e)}"
+            raise ConnectionError(msg) from e
 
         return GridGainChatMessageHistory(
             session_id=self.session_id,
