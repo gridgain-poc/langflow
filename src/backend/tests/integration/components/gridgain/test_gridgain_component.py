@@ -7,6 +7,7 @@ from langchain.schema import Document
 from langflow.schema import Data
 from pygridgain import Client
 
+
 class TestGridGainVectorStore(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
