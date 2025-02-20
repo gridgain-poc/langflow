@@ -12,7 +12,7 @@ class TestGridGainChatMemoryReal:
         """Fixture to ensure GridGain server is available."""
         client = pygridgain.Client()
         try:
-            client.connect("192.168.1.4", 10800)
+            client.connect("localhost", 10800)
             yield client
             client.close()
         except Exception as e:
@@ -28,7 +28,7 @@ class TestGridGainChatMemoryReal:
         """Test basic connection and component creation."""
         # Arrange
         component = GridGainChatMemory(
-            host="192.168.1.4",
+            host="localhost",
             port="10800",
             cache_name=test_cache_name,
             session_id="test_session_1",
@@ -52,7 +52,7 @@ class TestGridGainChatMemoryReal:
         # Act
         for session_id in session_ids:
             component = GridGainChatMemory(
-                host="192.168.1.4",
+                host="localhost",
                 port="10800",
                 cache_name=test_cache_name,
                 session_id=session_id,
@@ -69,7 +69,7 @@ class TestGridGainChatMemoryReal:
         """Test that messages are properly stored and retrieved."""
         # Arrange
         component = GridGainChatMemory(
-            host="192.168.1.4",
+            host="localhost",
             port="10800",
             cache_name=test_cache_name,
             session_id="persistence_test",
@@ -105,7 +105,7 @@ class TestGridGainChatMemoryReal:
         cache2_name = f"test_cache_2_{int(time.time())}"
 
         component1 = GridGainChatMemory(
-            host="192.168.1.4",
+            host="localhost",
             port="10800",
             cache_name=cache1_name,
             session_id="isolation_test",
@@ -113,7 +113,7 @@ class TestGridGainChatMemoryReal:
         )
 
         component2 = GridGainChatMemory(
-            host="192.168.1.4",
+            host="localhost",
             port="10800",
             cache_name=cache2_name,
             session_id="isolation_test",
@@ -156,7 +156,7 @@ class TestGridGainChatMemoryReal:
         """Test handling of large messages."""
         # Arrange
         component = GridGainChatMemory(
-            host="192.168.1.4",
+            host="localhost",
             port="10800",
             cache_name=test_cache_name,
             session_id="large_message_test",
@@ -182,7 +182,7 @@ class TestGridGainChatMemoryReal:
         def run_session(session_id, message, results):
             try:
                 component = GridGainChatMemory(
-                    host="192.168.1.4",
+                    host="localhost",
                     port="10800",
                     cache_name=test_cache_name,
                     session_id=session_id,

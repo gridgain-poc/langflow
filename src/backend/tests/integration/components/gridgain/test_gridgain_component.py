@@ -18,7 +18,7 @@ class TestGridGainVectorStore(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment before each test."""
-        self.host = "192.168.1.4"
+        self.host = "localhost"
         self.port = 10800
         self.cache_name = "test_vector_store"
 

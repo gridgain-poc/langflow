@@ -19,7 +19,7 @@ class GridGainChatMemory(LCChatMemoryComponent):
             display_name="Host",
             info="GridGain server host address.",
             required=True,
-            value="192.168.1.4",
+            value="localhost",
         ),
         StrInput(
             name="port",
