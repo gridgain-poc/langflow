@@ -306,7 +306,7 @@ For more information, see the [FAISS documentation](https://faiss.ai/index.html)
 
 ## GridGain Vector Store
 
-This component implements a Vector Store using GridGain with CSV ingestion and search capabilities.
+This component implements a Vector Store using GridGain with data ingestion and search capabilities.
 
 ### Inputs
 
