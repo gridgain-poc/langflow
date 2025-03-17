@@ -22,7 +22,7 @@ from langflow.schema import Data
 
 class GridGainVectorStoreComponent(LCVectorStoreComponent):
     display_name: str = "GridGain"
-    description: str = "GridGain Vector Store with data ingestion and search capabilities"
+    description: str = "GridGain Vector Store with search capabilities"
     documentation: str = "https://www.gridgain.com/docs/latest/index"
     name = "GridGain"
     icon = "GridGain"
