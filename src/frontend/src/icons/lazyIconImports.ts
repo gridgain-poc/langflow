@@ -1,4 +1,5 @@
 import { TwelveLabsIcon } from "./TwelveLabs";
+
 // Export the lazy loading mapping for icons
 export const lazyIconsMapping = {
   "AI/ML": () =>
