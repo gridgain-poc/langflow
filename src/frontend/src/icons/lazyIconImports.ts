@@ -23,10 +23,6 @@ export const lazyIconsMapping = {
     })),
   AstraDB: () =>
     import("@/icons/AstraDB").then((mod) => ({ default: mod.AstraDBIcon })),
-  GridGain: () =>
-    import("@/icons/GridGain").then((module) => ({
-      default: module.GridGainIcon,
-    })),
   Athena: () =>
     import("@/icons/athena").then((mod) => ({ default: mod.AthenaIcon })),
   AWS: () => import("@/icons/AWS").then((mod) => ({ default: mod.AWSIcon })),
@@ -129,6 +125,10 @@ export const lazyIconsMapping = {
   GridHorizontal: () =>
     import("@/icons/GridHorizontal").then((mod) => ({
       default: mod.GridHorizontalIcon,
+    })),
+  GridGain: () =>
+    import("@/icons/GridGain").then((module) => ({
+      default: module.GridGainIcon,
     })),
   Groq: () => import("@/icons/Groq").then((mod) => ({ default: mod.GroqIcon })),
   HackerNews: () =>

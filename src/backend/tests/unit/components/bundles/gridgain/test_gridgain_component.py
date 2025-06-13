@@ -45,7 +45,7 @@ def sample_data():
 
 
 class TestGridGainVectorStoreComponent:
-    """Test cases for GridGainVectorStoreComponent"""
+    """Test cases for GridGainVectorStoreComponent."""
 
     def test_process_data_input_with_valid_data(self, component, sample_data):
         # Test processing valid data input
