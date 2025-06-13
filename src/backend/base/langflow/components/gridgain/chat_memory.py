@@ -1,5 +1,3 @@
-# import pygridgain
-
 from langflow.base.memory.model import LCChatMemoryComponent
 from langflow.field_typing.constants import Memory
 from langflow.inputs import MessageTextInput, StrInput, IntInput
