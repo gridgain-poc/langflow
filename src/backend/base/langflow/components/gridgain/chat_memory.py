@@ -1,8 +1,8 @@
-import pygridgain
+# import pygridgain
 
 from langflow.base.memory.model import LCChatMemoryComponent
 from langflow.field_typing.constants import Memory
-from langflow.inputs import MessageTextInput, StrInput
+from langflow.inputs import MessageTextInput, StrInput, IntInput
 
 
 class GridGainChatMemory(LCChatMemoryComponent):
@@ -21,12 +21,12 @@ class GridGainChatMemory(LCChatMemoryComponent):
             required=True,
             value="localhost",
         ),
-        StrInput(
+        IntInput(
             name="port",
             display_name="Port",
             info="GridGain server port number.",
             required=True,
-            value="10800",
+            value=10800,
         ),
         StrInput(
             name="cache_name",
@@ -60,6 +60,11 @@ class GridGainChatMemory(LCChatMemoryComponent):
                 "Please ensure the implementation file is in the correct location."
             )
             raise ImportError(msg) from e
+
+        try:
+            import pygridgain
+        except ModuleNotFoundError:
+            pygridgain = None
 
         # Create the appropriate client based on the specified type
         if self.client_type.lower() == "pygridgain":

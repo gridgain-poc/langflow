@@ -1,4 +1,3 @@
-import { TwelveLabsIcon } from "./TwelveLabs";
 
 // Export the lazy loading mapping for icons
 export const lazyIconsMapping = {
@@ -25,7 +24,7 @@ export const lazyIconsMapping = {
   AstraDB: () =>
     import("@/icons/AstraDB").then((mod) => ({ default: mod.AstraDBIcon })),
   GridGain: () =>
-    import("../icons/GridGain").then((module) => ({
+    import("@/icons/GridGain").then((module) => ({
       default: module.GridGainIcon,
     })),
   Athena: () =>
